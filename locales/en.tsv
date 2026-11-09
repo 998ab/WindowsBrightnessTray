@@ -1,0 +1,108 @@
+Instant	Instant
+Quick	Quick
+Smoother	Smoother
+Detecting monitors…	Detecting monitors…
+Settings saved. Changes are already active.	Settings saved. Changes are already active.
+Changes are active, but settings could not be saved.	Changes are active, but settings could not be saved.
+Brightness: 	Brightness: 
+More	More
+Applying brightness…	Applying brightness…
+Brightness	Brightness
+Finish calibration first	Finish calibration first
+All monitors	All monitors
+Matched	Matched
+Not matched	Not matched
+DDC/CI unavailable	DDC/CI unavailable
+Looking for your monitors…	Looking for your monitors…
+No monitors found	No monitors found
+Enable DDC/CI in your monitor menu\nand click Refresh.	Enable DDC/CI in your monitor menu\nand click Refresh.
+Settings	Settings
+Choose how brightness responds.	Choose how brightness responds.
+Response: 	Response: 
+ · Wheel ±	 · Wheel ±
+Demo · physical monitors are not changed	Demo · physical monitors are not changed
+ · Diagnostics	 · Diagnostics
+Brightness response	Brightness response
+Apply the final brightness without intermediate steps.	Apply the final brightness without intermediate steps.
+Respond quickly to slider movements.	Respond quickly to slider movements.
+Smaller steps; large changes take longer.\nBacklight steps may still be visible.	Smaller steps; large changes take longer.\nBacklight steps may still be visible.
+Tray mouse wheel	Tray mouse wheel
+Brightness step. Ctrl: 1%.	Brightness step. Ctrl: 1%.
+Match displays	Match displays
+Common range and brightness	Common range and brightness
+MONITORS  ·  	MONITORS  ·  
+Saved automatically	Saved automatically
+BrightnessTray · wheel ±	BrightnessTray · wheel ±
+\nWheel ±	\nWheel ±
+Connect an external monitor and refresh the list.	Connect an external monitor and refresh the list.
+Ready. Brightness changes only when you adjust it.	Ready. Brightness changes only when you adjust it.
+The monitor did not respond. Try again or refresh the list.	The monitor did not respond. Try again or refresh the list.
+Brightness applied.	Brightness applied.
+The monitor did not respond. Refresh and check its level.	The monitor did not respond. Refresh and check its level.
+Connect at least two DDC/CI monitors to match brightness.	Connect at least two DDC/CI monitors to match brightness.
+Match displays · use as reference	Match displays · use as reference
+Reset this display calibration	Reset this display calibration
+Monitor synchronization: on	Monitor synchronization: on
+Monitor synchronization: off	Monitor synchronization: off
+Matched curves saved for all displays: 0 / 25 / 50 / 75 / 100%.	Matched curves saved for all displays: 0 / 25 / 50 / 75 / 100%.
+Calibration reset. Monitor brightness was not changed.	Calibration reset. Monitor brightness was not changed.
+Synchronization	Synchronization
+One level for all monitors	One level for all monitors
+Open	Open
+Brighter  +	Brighter  +
+Dimmer  −	Dimmer  −
+Set brightness	Set brightness
+Exit	Exit
+Refresh	Refresh
+Configure	Configure
+Monitors	Monitors
+Mouse wheel unavailable. Use the tray menu to adjust brightness.	Mouse wheel unavailable. Use the tray menu to adjust brightness.
+Match brightness across displays	Match brightness across displays
+Common maximum	Common maximum
+Common minimum	Common minimum
+Match the midpoint	Match the midpoint
+Match the lower quarter	Match the lower quarter
+Match the upper quarter	Match the upper quarter
+Review matched curves	Review matched curves
+Each display will show a light sample on a neutral background. Choose a reference display. First match the range, then three intermediate levels.	Each display will show a light sample on a neutral background. Choose a reference display. First match the range, then three intermediate levels.
+Find the brightest shared level. The dimmest display at its maximum limits the others: lower their backlights until the samples match.	Find the brightest shared level. The dimmest display at its maximum limits the others: lower their backlights until the samples match.
+Find a comfortable shared minimum. The display with the brightest minimum limits the others: raise their brightness to match. Do not look for disappearing symbols.	Find a comfortable shared minimum. The display with the brightest minimum limits the others: raise their brightness to match. Do not look for disappearing symbols.
+The reference is fixed at the midpoint of its range. Adjust the other displays until the light samples look equally bright.	The reference is fixed at the midpoint of its range. Adjust the other displays until the light samples look equally bright.
+The reference is fixed at 25% of the shared slider. Match the other displays to account for their different brightness scales.	The reference is fixed at 25% of the shared slider. Match the other displays to account for their different brightness scales.
+The reference is fixed at 75% of the shared slider. Match the light samples again.	The reference is fixed at 75% of the shared slider. Match the light samples again.
+Each display will have its own 0 / 25 / 50 / 75 / 100% curve. All displays are now at their matched midpoint.	Each display will have its own 0 / 25 / 50 / 75 / 100% curve. All displays are now at their matched midpoint.
+Match display brightness	Match display brightness
+Brightness of each display	Brightness of each display
+Cancel	Cancel
+Back	Back
+Start	Start
+All to 100%	All to 100%
+Reference	Reference
+Reading original brightness from all displays…	Reading original brightness from all displays…
+Some displays did not respond. Click Read again or cancel calibration.	Some displays did not respond. Click Read again or cancel calibration.
+A display did not respond. Move its slider to retry; changes have not been saved.	A display did not respond. Move its slider to retry; changes have not been saved.
+Original values recorded. Warm up your displays and use your usual lighting and the same SDR mode.	Original values recorded. Warm up your displays and use your usual lighting and the same SDR mode.
+Review the curves and save. Cancel restores the original brightness on all displays.	Review the curves and save. Cancel restores the original brightness on all displays.
+Compare the samples across displays. Continue when their brightness matches.	Compare the samples across displays. Continue when their brightness matches.
+All to 0%	All to 0%
+Reference: 	Reference: 
+Read again	Read again
+Save	Save
+Matched · next	Matched · next
+MATCH DISPLAYS  /  	MATCH DISPLAYS  /  
+Click the reference name to choose another display.	Click the reference name to choose another display.
+All five points are ready.	All five points are ready.
+STEP 	STEP 
+ / 5   ·   Shared level 	 / 5   ·   Shared level 
+Compare the light samples, not the percentages. Esc restores the original brightness.	Compare the light samples, not the percentages. Esc restores the original brightness.
+  ·  Reference	  ·  Reference
+BrightnessTray · Sample	BrightnessTray · Sample
+REFERENCE	REFERENCE
+MATCH TO REFERENCE	MATCH TO REFERENCE
+Settings could not be saved. Nothing was overwritten; please try again.	Settings could not be saved. Nothing was overwritten; please try again.
+Monitor	Monitor
+Display	Display
+Display 	Display 
+Language	Language
+English	English
+Russian	Russian

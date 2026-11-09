@@ -1,0 +1,108 @@
+Instant	Сразу
+Quick	Быстро
+Smoother	Плавнее
+Detecting monitors…	Поиск мониторов…
+Settings saved. Changes are already active.	Настройки сохранены. Изменения уже действуют.
+Changes are active, but settings could not be saved.	Изменения действуют сейчас, но сохранить настройки не удалось.
+Brightness: 	Яркость: 
+More	Ещё
+Applying brightness…	Применяем яркость…
+Brightness	Яркость
+Finish calibration first	Завершите настройку
+All monitors	Все мониторы
+Matched	Согласован
+Not matched	Не сопоставлен
+DDC/CI unavailable	DDC/CI недоступен
+Looking for your monitors…	Ищем ваши мониторы…
+No monitors found	Мониторы не найдены
+Enable DDC/CI in your monitor menu\nand click Refresh.	Включите DDC/CI в меню внешнего монитора\nи нажмите «Обновить».
+Settings	Настройки
+Choose how brightness responds.	Настройте отклик под себя.
+Response: 	Отклик: 
+ · Wheel ±	 · Колесо ±
+Demo · physical monitors are not changed	Демонстрация · настоящие экраны не меняются
+ · Diagnostics	 · Диагностика
+Brightness response	Отклик яркости
+Apply the final brightness without intermediate steps.	Конечная яркость без промежуточных шагов.
+Respond quickly to slider movements.	Быстрая реакция на движения ползунка.
+Smaller steps; large changes take longer.\nBacklight steps may still be visible.	Мелкие шаги; большие изменения займут дольше.\nСтупеньки подсветки могут оставаться заметными.
+Tray mouse wheel	Колёсико в трее
+Brightness step. Ctrl: 1%.	Шаг яркости. С Ctrl — 1%.
+Match displays	Согласование экранов
+Common range and brightness	Общий диапазон и яркость
+MONITORS  ·  	МОНИТОРЫ  ·  
+Saved automatically	Сохраняется автоматически
+BrightnessTray · wheel ±	BrightnessTray · колесо ±
+\nWheel ±	\nКолесо ±
+Connect an external monitor and refresh the list.	Подключите внешний монитор и обновите список.
+Ready. Brightness changes only when you adjust it.	Готово. Яркость меняется только по вашему действию.
+The monitor did not respond. Try again or refresh the list.	Нет ответа от монитора. Повторите действие или обновите список.
+Brightness applied.	Яркость применена.
+The monitor did not respond. Refresh and check its level.	Нет ответа от монитора. Нажмите «Обновить» и проверьте уровень.
+Connect at least two DDC/CI monitors to match brightness.	Для сопоставления подключите минимум два монитора с DDC/CI.
+Match displays · use as reference	Сопоставить · использовать как эталон
+Reset this display calibration	Сбросить калибровку этого экрана
+Monitor synchronization: on	Синхронизация мониторов: включена
+Monitor synchronization: off	Синхронизация мониторов: выключена
+Matched curves saved for all displays: 0 / 25 / 50 / 75 / 100%.	Сохранены согласованные кривые всех экранов: 0 / 25 / 50 / 75 / 100%.
+Calibration reset. Monitor brightness was not changed.	Калибровка сброшена. Яркость монитора не менялась.
+Synchronization	Синхронизация
+One level for all monitors	Один уровень для всех мониторов
+Open	Открыть
+Brighter  +	Ярче  +
+Dimmer  −	Темнее  −
+Set brightness	Установить яркость
+Exit	Выход
+Refresh	Обновить
+Configure	Настроить
+Monitors	Мониторы
+Mouse wheel unavailable. Use the tray menu to adjust brightness.	Колесо недоступно. Регулировка яркости есть в меню значка трея.
+Match brightness across displays	Одинаковая яркость на всех экранах
+Common maximum	Общий верхний предел
+Common minimum	Общий нижний предел
+Match the midpoint	Сопоставьте середину
+Match the lower quarter	Сопоставьте нижнюю четверть
+Match the upper quarter	Сопоставьте верхнюю четверть
+Review matched curves	Проверьте согласованные кривые
+Each display will show a light sample on a neutral background. Choose a reference display. First match the range, then three intermediate levels.	На каждом экране появится одинаковый светлый образец на нейтральном фоне. Выберите эталон. Сначала найдём общий диапазон, затем согласуем ещё три уровня.
+Find the brightest shared level. The dimmest display at its maximum limits the others: lower their backlights until the samples match.	Найдите самый яркий общий уровень. Самый тусклый экран на своих 100% ограничивает остальные: уменьшайте их подсветку, пока образцы не станут одинаково яркими.
+Find a comfortable shared minimum. The display with the brightest minimum limits the others: raise their brightness to match. Do not look for disappearing symbols.	Найдите удобный общий минимум. Экран с самым ярким минимальным уровнем ограничивает остальные: поднимите их яркость до совпадения. Не ищите исчезающие символы.
+The reference is fixed at the midpoint of its range. Adjust the other displays until the light samples look equally bright.	Эталон зафиксирован в середине выбранного диапазона. Подстройте остальные экраны: светлые образцы должны выглядеть одинаково яркими.
+The reference is fixed at 25% of the shared slider. Match the other displays to account for their different brightness scales.	Эталон зафиксирован на 25% общего ползунка. Подстройте остальные экраны до визуального совпадения. Это учитывает различия их шкал.
+The reference is fixed at 75% of the shared slider. Match the light samples again.	Эталон зафиксирован на 75% общего ползунка. Снова добейтесь одинаковой яркости образцов.
+Each display will have its own 0 / 25 / 50 / 75 / 100% curve. All displays are now at their matched midpoint.	Для каждого экрана сохранится своя шкала 0 / 25 / 50 / 75 / 100%. Сейчас все экраны возвращены на согласованную середину.
+Match display brightness	Согласование яркости
+Brightness of each display	Яркость каждого экрана
+Cancel	Отмена
+Back	Назад
+Start	Начать
+All to 100%	Все на 100%
+Reference	Эталон
+Reading original brightness from all displays…	Читаем исходную яркость всех экранов…
+Some displays did not respond. Click Read again or cancel calibration.	Не все экраны ответили. Нажмите «Повторить чтение» или отмените настройку.
+A display did not respond. Move its slider to retry; changes have not been saved.	Нет ответа от одного из экранов. Передвиньте его ползунок для повтора; изменения пока не сохранены.
+Original values recorded. Warm up your displays and use your usual lighting and the same SDR mode.	Исходные значения сохранены. Прогрейте экраны; используйте привычное освещение и одинаковый режим SDR.
+Review the curves and save. Cancel restores the original brightness on all displays.	Проверьте кривые и сохраните. Отмена восстановит исходную яркость всех экранов.
+Compare the samples across displays. Continue when their brightness matches.	Сравните образцы на всех экранах. Переходите дальше, когда их яркость совпадает.
+All to 0%	Все на 0%
+Reference: 	Эталон: 
+Read again	Повторить чтение
+Save	Сохранить
+Matched · next	Совпадает · далее
+MATCH DISPLAYS  /  	СОГЛАСОВАНИЕ ЭКРАНОВ  /  
+Click the reference name to choose another display.	Нажмите на имя эталона, чтобы выбрать другой экран.
+All five points are ready.	Все пять точек готовы.
+STEP 	ШАГ 
+ / 5   ·   Shared level 	 / 5   ·   Общий уровень 
+Compare the light samples, not the percentages. Esc restores the original brightness.	Сравнивайте светлые образцы, а не проценты. Esc — вернуть исходную яркость.
+  ·  Reference	  ·  Эталон
+BrightnessTray · Sample	BrightnessTray · Образец
+REFERENCE	ЭТАЛОН
+MATCH TO REFERENCE	СРАВНИТЕ С ЭТАЛОНОМ
+Settings could not be saved. Nothing was overwritten; please try again.	Не удалось сохранить настройки. Ничего не перезаписано; повторите попытку.
+Monitor	Монитор
+Display	Экран
+Display 	Экран 
+Language	Язык
+English	English
+Russian	Русский
