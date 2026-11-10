@@ -30,6 +30,15 @@ Use **Exit** before installing or upgrading. Preferences and calibration are pre
 
 ## Controls
 
+<p align="center">
+  <picture>
+    <source media="(prefers-reduced-motion: reduce)" srcset="docs/media/tray-scroll-still.png">
+    <img src="docs/media/tray-scroll.gif" width="880" alt="Real installed app: scrolling up over the tray icon raises brightness from 44 to 48 percent; scrolling down returns it to 44 percent. An animated mouse wheel indicates the direction.">
+  </picture>
+</p>
+
+*Recorded on the installed application with real monitors and the main window closed. The mouse-wheel indicator is an added annotation; the tray icon and percentage popup are real captures. Screen recording shows the brightness target, not physical backlight luminance.*
+
 - Hover over the tray icon and scroll to adjust brightness without opening a window. Choose a 1%, 2%, or 5% wheel step; hold Ctrl for 1%. High-resolution deltas accumulate.
 - Left-click to show or hide the window. Closing it or pressing Escape hides it in the tray. **Exit** stops the application.
 - Right-click for presets, synchronization, settings, and monitor selection.

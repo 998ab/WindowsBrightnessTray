@@ -1,8 +1,16 @@
 # README media
 
-These images show the actual BrightnessTray v0.1.0 interface, captured in demo mode.
-Only virtual displays are adjusted. Physical monitor settings and user profiles are
-not part of the captures.
+These images show the actual BrightnessTray v0.1.0 interface. The tray-scroll
+recording uses the installed application and real monitors. The other captures use
+demo mode with virtual displays.
+
+- **tray-scroll.gif:** a real tray-wheel recording, with the main window closed.
+  Two upward wheel notches raise the shared target from 44% to 48%; two downward
+  notches return it to 44%. The real icon and popup are cropped from the recording;
+  surrounding desktop content is excluded. The animated mouse and direction labels
+  are editorial annotations timed to the observed changes, not captured wheel events.
+  Screen recording does not measure physical backlight luminance.
+- **tray-scroll-still.png:** static alternative from the same recording.
 
 - **synchronization.gif:** shared brightness targets moving together; 10 frames,
   looping playback. It illustrates the UI, not measured panel response or DDC timing.
@@ -16,5 +24,5 @@ not part of the captures.
 
 The original window captures are placed on a consistent presentation background.
 The application interface is not redrawn or generated. GIFs use a shared 256-color
-palette to avoid palette flicker; each is smaller than 1 MB. The README supplies
+palette to avoid palette flicker; each is smaller than 1.5 MB. The README supplies
 static alternatives when the viewer requests reduced motion.
