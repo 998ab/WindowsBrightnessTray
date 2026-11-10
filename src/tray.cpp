@@ -1,4 +1,5 @@
 #include "tray.h"
+#include "tray_position.h"
 #include <shellapi.h>
 #include <algorithm>
 
@@ -13,11 +14,13 @@ void TrayControl::Stop() {
     if(instance_==this)instance_=nullptr;
 }
 void TrayControl::InvalidatePosition(){hovered_=false;SetRectEmpty(&icon_);remainder_=0;}
-void TrayControl::Hover() {
+bool TrayControl::Hover() {
+    const bool entered=!hovered_;
     NOTIFYICONIDENTIFIER identifier{sizeof(identifier),owner_,1,{}};
     RECT rect{};
     if(SUCCEEDED(Shell_NotifyIconGetRect(&identifier,&rect))){icon_=rect;hovered_=true;}
-    else InvalidatePosition();
+    else {InvalidatePosition();return false;}
+    return entered;
 }
 LRESULT CALLBACK TrayControl::Hook(int code,WPARAM wp,LPARAM lp) {
     auto self=instance_;
@@ -69,4 +72,40 @@ LRESULT CALLBACK TrayControl::ToastProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) 
         EndPaint(hwnd,&ps);return 0;
     }
     return DefWindowProcW(hwnd,msg,wp,lp);
+}
+
+namespace tray_position {
+bool Resolve(HWND owner,RECT& anchor,RECT& taskbar,RECT* overflow){
+    if(overflow)SetRectEmpty(overflow);
+    NOTIFYICONIDENTIFIER id{sizeof(id),owner,1,{}};
+    const bool hasIcon=SUCCEEDED(Shell_NotifyIconGetRect(&id,&anchor));
+    HMONITOR monitor=hasIcon?MonitorFromRect(&anchor,MONITOR_DEFAULTTONEAREST):MonitorFromWindow(owner,MONITOR_DEFAULTTOPRIMARY);
+    MONITORINFO info{sizeof(info)};GetMonitorInfoW(monitor,&info);
+    POINT cursor;GetCursorPos(&cursor);
+    struct Search{HMONITOR monitor;HWND found;RECT flyout;POINT cursor;RECT icon;bool hasIcon;};Search search{monitor,nullptr,{},cursor,anchor,hasIcon};
+    EnumWindows([](HWND hwnd,LPARAM value)->BOOL{auto& search=*reinterpret_cast<Search*>(value);wchar_t name[80]{};GetClassNameW(hwnd,name,80);
+        if(MonitorFromWindow(hwnd,MONITOR_DEFAULTTONEAREST)!=search.monitor)return TRUE;
+        if(wcscmp(name,L"Shell_TrayWnd")==0||wcscmp(name,L"Shell_SecondaryTrayWnd")==0)search.found=hwnd;
+        if(IsWindowVisible(hwnd)&&(wcscmp(name,L"TopLevelWindowForOverflowXamlIsland")==0||wcscmp(name,L"NotifyIconOverflowWindow")==0)){
+            RECT r{},intersection{};GetWindowRect(hwnd,&r);
+            if(PtInRect(&r,search.cursor)||(search.hasIcon&&IntersectRect(&intersection,&r,&search.icon)))search.flyout=r;
+        }return TRUE;},reinterpret_cast<LPARAM>(&search));
+    if(search.found)GetWindowRect(search.found,&taskbar);
+    else{taskbar=info.rcMonitor;taskbar.top=info.rcWork.bottom;if(taskbar.top==taskbar.bottom)taskbar.top=taskbar.bottom-1;}
+    if(!IsRectEmpty(&search.flyout)){
+        anchor=search.flyout;if(overflow)*overflow=search.flyout;
+        return true;
+    }
+    if(!hasIcon||!InTaskbar(anchor,taskbar)){
+        RECT notification=taskbar;
+        HWND tray=search.found?FindWindowExW(search.found,nullptr,L"TrayNotifyWnd",nullptr):nullptr;
+        if(tray)GetWindowRect(tray,&notification);
+        else if(taskbar.right-taskbar.left>=taskbar.bottom-taskbar.top){
+            const LONG center=hasIcon?(anchor.left+anchor.right)/2:taskbar.right;
+            notification.left=std::clamp(center-16,taskbar.left,std::max(taskbar.left,taskbar.right-32));notification.right=notification.left+32;
+        }
+        anchor=OverflowAnchor(notification,taskbar,GetSystemMetricsForDpi(SM_CXSMICON,GetDpiForWindow(owner))*2);
+    }
+    return true;
+}
 }

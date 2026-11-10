@@ -1,0 +1,112 @@
+{
+  "browser": "157.0.8103.39",
+  "date": "2026-11-10T18:05:48.422Z",
+  "results": [
+    {
+      "name": "snapshot and calibrated logical levels",
+      "status": "PASS"
+    },
+    {
+      "name": "linked mode has exactly one visible slider",
+      "status": "PASS"
+    },
+    {
+      "name": "unlink does not change levels; two sliders",
+      "status": "PASS"
+    },
+    {
+      "name": "target moves immediately; line follows and settles",
+      "status": "PASS"
+    },
+    {
+      "name": "shared slider applies same logical value, individual hardware curves",
+      "status": "PASS"
+    },
+    {
+      "name": "rapid retargeting and direction reversal settle at final value",
+      "status": "PASS"
+    },
+    {
+      "name": "animation becomes idle",
+      "status": "PASS"
+    },
+    {
+      "name": "brightness endpoints remain bounded",
+      "status": "PASS"
+    },
+    {
+      "name": "instant mode",
+      "status": "PASS"
+    },
+    {
+      "name": "all response modes and wheel steps",
+      "status": "PASS"
+    },
+    {
+      "name": "tray wheel and Ctrl precision",
+      "status": "PASS"
+    },
+    {
+      "name": "outside click closes, tray click reopens brightness",
+      "status": "PASS"
+    },
+    {
+      "name": "Escape and repeated tray click close popup",
+      "status": "PASS"
+    },
+    {
+      "name": "native select blur keeps popup; ordinary blur closes",
+      "status": "PASS"
+    },
+    {
+      "name": "English, dynamic rendering, language persists after reload",
+      "status": "PASS"
+    },
+    {
+      "name": "English wizard contains no untranslated Russian UI",
+      "status": "PASS"
+    },
+    {
+      "name": "calibration separate dialog and reference selector",
+      "status": "PASS"
+    },
+    {
+      "name": "cancel discards calibration draft",
+      "status": "PASS"
+    },
+    {
+      "name": "all five steps preserve bounds and lock reference at intermediate points",
+      "status": "PASS"
+    },
+    {
+      "name": "save applies calibration; reopen reflects new values",
+      "status": "PASS"
+    },
+    {
+      "name": "close button cancels, reset restores original calibration",
+      "status": "PASS"
+    },
+    {
+      "name": "refresh state and reset cancel pending refresh",
+      "status": "PASS"
+    },
+    {
+      "name": "keyboard controls sliders",
+      "status": "PASS"
+    },
+    {
+      "name": "light and dark themes, both languages, 320/550/760/1000px",
+      "status": "PASS"
+    },
+    {
+      "name": "reduced motion, no spinning or delayed level",
+      "status": "PASS"
+    },
+    {
+      "name": "no duplicate IDs, missing labels or script errors; no network",
+      "status": "PASS"
+    }
+  ],
+  "errors": [],
+  "networkRequests": 0
+}

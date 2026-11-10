@@ -17,6 +17,17 @@ struct Surface {
     int S(int value) const { return MulDiv(value, static_cast<int>(dpi), 96); }
     ~Surface() { Clear(); }
 };
+class BackBuffer {
+public:
+    BackBuffer()=default;
+    BackBuffer(const BackBuffer&)=delete;
+    BackBuffer& operator=(const BackBuffer&)=delete;
+    HDC Begin(HDC target,int width,int height);
+    void Clear();
+    ~BackBuffer(){Clear();}
+private:
+    HDC dc_{};HBITMAP bitmap_{};HGDIOBJ original_{};int width_{},height_{};
+};
 void Frame(HWND window);
 void Fill(HDC dc, RECT rect, COLORREF color);
 void Round(HDC dc, RECT rect, COLORREF fill, COLORREF border, int radius);
@@ -28,6 +39,12 @@ void Button(HWND parent, Surface& surface, const std::wstring& text, int id, boo
 LRESULT SliderDraw(NMHDR* header, const Surface& surface);
 bool DrawButton(const DRAWITEMSTRUCT& item, const Surface& surface);
 LRESULT ColorControl(UINT message, WPARAM dc, LPARAM control);
-HICON CreateTrayIcon(bool forTray=true,double angle=0);
+enum class Glyph { Link,Settings,Back,Chevron,Monitor };
+void DrawGlyph(HDC dc,RECT bounds,Glyph glyph,COLORREF color);
+void DrawSun(HDC dc,RECT bounds,double angle=0);
+bool SetSliderActual(HWND slider,double percent,bool animate=true);
+void BeginSliderActual(HWND slider);
+bool AdvanceSliderActual(HWND slider);
+HICON CreateTrayIcon(bool forTray=true,double angle=0,int pixels=32);
 }
 

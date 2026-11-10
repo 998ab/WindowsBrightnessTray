@@ -7,6 +7,8 @@ A lightweight Windows tray application for external monitor brightness, built wi
 
 **[Download for Windows](https://github.com/998ab/WindowsBrightnessTray/releases/latest)** · [See calibration](#match-displays) · [Build from source](#build-and-test)
 
+Version 0.2.0 introduces a compact tray popup with one shared slider for linked monitors, separate target and confirmed brightness, and procedural sun animation. Settings scroll on short work areas, and keyboard navigation keeps focused controls visible. The recordings below show the earlier 0.1.0 interface.
+
 <p align="center">
   <picture>
     <source media="(prefers-reduced-motion: reduce)" srcset="docs/media/synchronization-still.png">
@@ -37,13 +39,14 @@ Use **Exit** before installing or upgrading. Preferences and calibration are pre
   </picture>
 </p>
 
-*Recorded on the installed application with real monitors and the main window closed. The mouse-wheel indicator is an added annotation; the tray icon and percentage popup are real captures. Screen recording shows the brightness target, not physical backlight luminance.*
+*Recorded on the installed 0.1.0 application with real monitors and the main window closed. The mouse-wheel indicator is an added annotation; the tray icon and percentage popup are real captures. Version 0.2.0 removes the separate wheel popup. Screen recording shows the brightness target, not physical backlight luminance.*
 
 - Hover over the tray icon and scroll to adjust brightness without opening a window. Choose a 1%, 2%, or 5% wheel step; hold Ctrl for 1%. High-resolution deltas accumulate.
 - Left-click to show or hide the window. Closing it or pressing Escape hides it in the tray. **Exit** stops the application.
 - Right-click for presets, synchronization, settings, and monitor selection.
 - Synchronize supported monitors using their calibration curves, or adjust displays separately.
-- The tray logo turns clockwise for increasing brightness and counterclockwise for decreasing brightness, then slows to an equivalent 120-degree orientation. Animation timers stop when idle.
+- Linked displays use one shared slider. The thumb sets the target; the blue line follows acknowledged brightness, interpolated at the measured device response cadence. The line can lag the acknowledgement slightly; numeric monitor levels remain direct confirmations.
+- The procedurally drawn sun responds immediately to brightness input, turns clockwise for increasing brightness and counterclockwise for decreasing brightness, and fades out smoothly after the last input without snapping to a fixed pose. Only the current tray icon is retained; animation timers stop when idle.
 - The interface follows the Windows light/dark theme and per-monitor DPI.
 
 ## Interface
@@ -103,7 +106,7 @@ Install Visual Studio 2022 C++ Build Tools with the Windows SDK, then run:
 ./build/release/BrightnessTray.exe
 ~~~
 
-The script uses a static C++ runtime and runs calibration, layout, localization, worker, tray, and display-name tests. Tests do not change physical brightness. CMake with MSVC also supports Release builds and CTest.
+The script uses a static C++ runtime and runs calibration, layout, localization, worker, tray, display-name, native popup, failure-cleanup, and UI focus/scroll tests. Tests do not change physical brightness. CMake with MSVC also supports Release builds and CTest.
 
 Run scripts/package-icon.ps1 to regenerate the ICO from the original PNG.
 

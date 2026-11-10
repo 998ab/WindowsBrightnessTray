@@ -31,6 +31,17 @@ int main() {
     Check(ToHardwarePercent(25,Calibration{10,35,80})==23);
     Check(ToHardwarePercent(75,Calibration{10,35,80})==58);
     Check(FromRaw(75,25,125)==50);
+    for(auto curve:{Calibration{10,35,80},Calibration::FromNodes({8,15,28,50,72})}){
+        auto nodes=curve.Matched()?curve.Nodes():std::array<int,5>{10,10,35,80,80};
+        const int segments=curve.Matched()?4:2;
+        for(int segment=0;segment<segments;++segment){
+            double low=curve.Matched()?nodes[segment]:(segment==0?curve.low:curve.middle);
+            double high=curve.Matched()?nodes[segment+1]:(segment==0?curve.middle:curve.high);
+            const double span=curve.Matched()?25:50;
+            for(int step=0;step<=100;++step)Check(std::abs(ToLogicalContinuous(low+(high-low)*step/100,curve)-(segment*span+span*step/100))<0.000001);
+        }
+        Check(ToLogicalContinuous(-10,curve)==0&&ToLogicalContinuous(110,curve)==100);
+    }
     std::mt19937 random(42);
     for(int test=0;test<10000;++test) {
         std::array<int,5> nodes;

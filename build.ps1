@@ -38,5 +38,15 @@ try {
     if ($LASTEXITCODE) { throw 'Name tests failed' }
     & cl.exe /nologo /std:c++17 /O2 /MT /W4 /EHsc /utf-8 /DUNICODE /D_UNICODE /DWIN32_LEAN_AND_MEAN /DNOMINMAX tests/display_names_probe.cpp src/display_names.cpp "/Fo:$OutputDirectory/" "/Fe:$OutputDirectory/display_names_probe.exe" /link user32.lib
     if ($LASTEXITCODE) { throw 'Name probe build failed' }
+    & cl.exe /nologo /std:c++17 /O2 /MT /W4 /EHsc /utf-8 /DUNICODE /D_UNICODE /DWIN32_LEAN_AND_MEAN /DNOMINMAX tests/popup_smoke.cpp "/Fo:$OutputDirectory/" "/Fe:$OutputDirectory/popup_smoke.exe" /link user32.lib gdi32.lib
+    if ($LASTEXITCODE) { throw 'Popup smoke test build failed' }
+    & ".\$OutputDirectory\popup_smoke.exe" (Join-Path (Resolve-Path $OutputDirectory) 'BrightnessTray.exe')
+    if ($LASTEXITCODE) { throw 'Popup smoke tests failed' }
+    & ".\$OutputDirectory\popup_smoke.exe" (Join-Path (Resolve-Path $OutputDirectory) 'BrightnessTray.exe') '--exercise-failure-cleanup'
+    if ($LASTEXITCODE) { throw 'Popup failure cleanup test failed' }
+    & cl.exe /nologo /std:c++17 /O2 /MT /W4 /EHsc /utf-8 /DUNICODE /D_UNICODE /DWIN32_LEAN_AND_MEAN /DNOMINMAX tests/ui_layout_tests.cpp src/display_names.cpp src/monitors.cpp src/ui.cpp src/calibration.cpp src/tray.cpp "/Fo:$OutputDirectory/" "/Fe:$OutputDirectory/ui_layout_tests.exe" /link "$OutputDirectory/app.res" user32.lib gdi32.lib shell32.lib comctl32.lib dxva2.lib dwmapi.lib uxtheme.lib advapi32.lib
+    if ($LASTEXITCODE) { throw 'UI layout test build failed' }
+    & ".\$OutputDirectory\ui_layout_tests.exe"
+    if ($LASTEXITCODE) { throw 'UI layout tests failed' }
 } finally { Pop-Location }
 

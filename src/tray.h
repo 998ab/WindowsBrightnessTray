@@ -7,7 +7,7 @@ class TrayControl {
 public:
     bool Start(HWND owner,UINT wheelMessage);
     void Stop();
-    void Hover();
+    bool Hover();
     void InvalidatePosition();
     int TakeWheel(int delta,bool fine,int step=2);
     void Toast(std::wstring title,std::wstring value);

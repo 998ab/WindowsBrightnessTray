@@ -34,6 +34,14 @@ inline int ToLogicalPercent(int hardware, const Calibration& c) {
         ? ((hardware - c.low) * 50 + (c.middle - c.low) / 2) / (c.middle - c.low)
         : 50 + ((hardware - c.middle) * 50 + (c.high - c.middle) / 2) / (c.high - c.middle), 0, 100);
 }
+// Continuous inverse for drawing; control targets and numeric labels stay integer.
+inline double ToLogicalContinuous(double hardware,const Calibration& c){
+    if(!c.Valid())return std::clamp(hardware,0.0,100.0);
+    hardware=std::clamp(hardware,static_cast<double>(c.low),static_cast<double>(c.high));
+    if(c.Matched()){auto nodes=c.Nodes();int segment=0;while(segment<3&&hardware>nodes[segment+1])++segment;
+        return segment*25+(hardware-nodes[segment])*25/(nodes[segment+1]-nodes[segment]);}
+    return hardware<=c.middle?(hardware-c.low)*50/(c.middle-c.low):50+(hardware-c.middle)*50/(c.high-c.middle);
+}
 inline std::uint32_t ToRaw(int percent, std::uint32_t low, std::uint32_t high) {
     return low + static_cast<std::uint32_t>((static_cast<std::uint64_t>(high - low) * std::clamp(percent, 0, 100) + 50) / 100);
 }
