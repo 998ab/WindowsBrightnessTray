@@ -2,6 +2,20 @@
 
 A lightweight Windows tray application for external monitor brightness, built with C++17, Win32, and DDC/CI. No Electron, WebView, .NET, telemetry, or network access in the application.
 
+[![Build](https://github.com/998ab/WindowsBrightnessTray/actions/workflows/build.yml/badge.svg)](https://github.com/998ab/WindowsBrightnessTray/actions/workflows/build.yml)
+[![Latest release](https://img.shields.io/github/v/release/998ab/WindowsBrightnessTray?color=60cdff&label=release)](https://github.com/998ab/WindowsBrightnessTray/releases/latest)
+
+**[Download for Windows](https://github.com/998ab/WindowsBrightnessTray/releases/latest)** · [See calibration](#match-displays) · [Build from source](#build-and-test)
+
+<p align="center">
+  <picture>
+    <source media="(prefers-reduced-motion: reduce)" srcset="docs/media/synchronization-still.png">
+    <img src="docs/media/synchronization.gif" width="900" alt="Animated demo: one brightness slider changes the targets of two synchronized displays together.">
+  </picture>
+</p>
+
+*Actual application UI, captured in demo mode. The animation illustrates shared slider targets, not physical panel response.*
+
 ## Download and install
 
 Download from [Releases](https://github.com/998ab/WindowsBrightnessTray/releases/latest).
@@ -23,9 +37,15 @@ Use **Exit** before installing or upgrading. Preferences and calibration are pre
 - The tray logo turns clockwise for increasing brightness and counterclockwise for decreasing brightness, then slows to an equivalent 120-degree orientation. Animation timers stop when idle.
 - The interface follows the Windows light/dark theme and per-monitor DPI.
 
+## Interface
+
+![BrightnessTray in dark and light Windows themes, with two synchronized displays at 50 percent.](docs/media/themes.png)
+
 ## Languages and response
 
 English and Russian are embedded in the executable. The first launch follows the Windows display language. **Settings → Language** changes it immediately and saves the choice.
+
+![English and Russian settings side by side, showing response modes, mouse-wheel controls, calibration, and the live language switch.](docs/media/languages.png)
 
 One setting controls brightness response:
 
@@ -37,9 +57,23 @@ Actual response depends on the monitor, driver, integer scale, and DDC/CI latenc
 
 ## Match displays
 
+<p align="center">
+  <picture>
+    <source media="(prefers-reduced-motion: reduce)" srcset="docs/media/calibration.png">
+    <img src="docs/media/calibration-walkthrough.gif" width="900" alt="Animated calibration walkthrough: reference display, shared maximum and minimum, midpoint, quarter points, and review of the five-point curves.">
+  </picture>
+</p>
+
 Open **Settings → Match displays → Configure**, or a display's **More → Match displays · use as reference** menu item.
 
 The wizard matches a shared minimum, maximum, and 25/50/75% points. Light strips appear at facing edges using the monitor arrangement in Windows. Side-by-side displays use the complete height; stacked displays use the complete width. Controls stay away from the reference strip.
+
+<details>
+<summary>View the full-height comparison samples at the shared display edge</summary>
+
+![The calibration wizard beside two full-height comparison strips, placed on the facing edges of neighboring displays.](docs/media/calibration.png)
+
+</details>
 
 Calibration changes apply directly without animation. **Cancel** restores exact original hardware values. Profiles are saved only after completing the wizard. Existing three-point profiles remain readable.
 
