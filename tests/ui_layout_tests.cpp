@@ -4,6 +4,7 @@
 #include <iostream>
 #include <stdexcept>
 bool quietUi=false;
+std::wstring layoutContext;
 void CheckUi(bool value,const char* message){if(!value)throw std::runtime_error(message);if(!quietUi)std::cout<<"PASS: "<<message<<std::endl;}
 RECT InParent(HWND child){RECT r{};GetWindowRect(child,&r);MapWindowPoints(nullptr,GetParent(child),reinterpret_cast<POINT*>(&r),2);return r;}
 bool Within(HWND child){auto r=InParent(child);RECT viewport{};GetClientRect(GetParent(child),&viewport);return r.top>=0&&r.bottom<=viewport.bottom&&r.left>=0&&r.right<=viewport.right;}
@@ -32,11 +33,12 @@ void CheckButtonLabel(HWND button,int horizontalPadding=16){
     UINT dpi=surface.dpi;
     if(r.right<measured.right+MulDiv(horizontalPadding,static_cast<int>(dpi),96)||r.bottom<measured.bottom+MulDiv(6,static_cast<int>(dpi),96))
         throw std::runtime_error("localized button label is clipped at current DPI");
-    if(!Within(button))throw std::runtime_error("visible control extends beyond its viewport");
+    if(!Within(button)){auto bounds=InParent(button);RECT viewport{};GetClientRect(GetParent(button),&viewport);std::wcerr<<layoutContext<<L" control="<<GetDlgCtrlID(button)<<L" text="<<text<<L" bounds="<<bounds.left<<L","<<bounds.top<<L","<<bounds.right<<L","<<bounds.bottom<<L" viewport="<<viewport.right<<L","<<viewport.bottom<<std::endl;throw std::runtime_error("visible control extends beyond its viewport");}
 }
 void CheckCompactLayouts(){
     frameClock.Stop();framesRunning=false;quietUi=true;
     for(const wchar_t* language:{L"en",L"ru"})for(int theme:{1,2})for(UINT dpi:{96u,120u,144u,192u}){
+        layoutContext=std::wstring(language)+L" theme="+std::to_wstring(theme)+L" DPI="+std::to_wstring(dpi)+L" settings";
         ui::themeOverride=theme;ui::RefreshTheme();
         SendMessageW(window,WM_COMMAND,wcscmp(language,L"ru")==0?LanguageRu:LanguageEn,0);
         RECT requested{100,100,100+MulDiv(320,static_cast<int>(dpi),96),100+MulDiv(348,static_cast<int>(dpi),96)};
@@ -65,6 +67,7 @@ void CheckCompactLayouts(){
         RECT calRect{100,100,100+MulDiv(420,static_cast<int>(dpi),96),100+MulDiv(520,static_cast<int>(dpi),96)};
         SendMessageW(calibration.Handle(),WM_DPICHANGED,MAKEWPARAM(dpi,dpi),reinterpret_cast<LPARAM>(&calRect));
         for(int step=0;step<7;++step){
+            layoutContext=std::wstring(language)+L" theme="+std::to_wstring(theme)+L" DPI="+std::to_wstring(dpi)+L" step="+std::to_wstring(step);
             auto cal=calibration.Handle();
             SendMessageW(cal,WM_VSCROLL,SB_BOTTOM,0);for(int id:{101,102,103})CheckButtonLabel(GetDlgItem(cal,id));
             SendMessageW(cal,WM_VSCROLL,SB_TOP,0);CheckButtonLabel(GetDlgItem(cal,104));
