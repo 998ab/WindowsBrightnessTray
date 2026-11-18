@@ -33,7 +33,7 @@ void CheckButtonLabel(HWND button,int horizontalPadding=16){
     UINT dpi=surface.dpi;
     if(r.right<measured.right+MulDiv(horizontalPadding,static_cast<int>(dpi),96)||r.bottom<measured.bottom+MulDiv(6,static_cast<int>(dpi),96))
         throw std::runtime_error("localized button label is clipped at current DPI");
-    if(!Within(button)){auto bounds=InParent(button);RECT viewport{};GetClientRect(GetParent(button),&viewport);std::wcerr<<layoutContext<<L" control="<<GetDlgCtrlID(button)<<L" text="<<text<<L" bounds="<<bounds.left<<L","<<bounds.top<<L","<<bounds.right<<L","<<bounds.bottom<<L" viewport="<<viewport.right<<L","<<viewport.bottom<<std::endl;throw std::runtime_error("visible control extends beyond its viewport");}
+    if(!Within(button)){auto bounds=InParent(button);RECT viewport{};GetClientRect(GetParent(button),&viewport);std::wcerr<<layoutContext<<L" control="<<GetDlgCtrlID(button)<<L" bounds="<<bounds.left<<L","<<bounds.top<<L","<<bounds.right<<L","<<bounds.bottom<<L" viewport="<<viewport.right<<L","<<viewport.bottom<<std::endl;throw std::runtime_error("visible control extends beyond its viewport");}
 }
 void CheckCompactLayouts(){
     frameClock.Stop();framesRunning=false;quietUi=true;
@@ -70,6 +70,7 @@ void CheckCompactLayouts(){
             layoutContext=std::wstring(language)+L" theme="+std::to_wstring(theme)+L" DPI="+std::to_wstring(dpi)+L" step="+std::to_wstring(step);
             auto cal=calibration.Handle();
             SendMessageW(cal,WM_VSCROLL,SB_BOTTOM,0);for(int id:{101,102,103})CheckButtonLabel(GetDlgItem(cal,id));
+            for(int a:{101,102,103})for(int b:{101,102,103})if(a<b&&IsWindowVisible(GetDlgItem(cal,a))&&IsWindowVisible(GetDlgItem(cal,b))){auto first=InParent(GetDlgItem(cal,a)),second=InParent(GetDlgItem(cal,b));RECT overlap{};CheckUi(!IntersectRect(&overlap,&first,&second),"calibration action buttons do not overlap in narrow windows");}
             SendMessageW(cal,WM_VSCROLL,SB_TOP,0);CheckButtonLabel(GetDlgItem(cal,104));
             RECT outer{};GetWindowRect(cal,&outer);
             CheckUi(outer.right-outer.left<=surface.S(420),"calibration keeps its compact width");

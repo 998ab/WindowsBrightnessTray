@@ -7,6 +7,7 @@
 inline BOOL UiTestGetMonitorInfoW(HMONITOR monitor,LPMONITORINFO info) {
     BOOL result=GetMonitorInfoW(monitor,info);
     if(result&&std::wcsstr(GetCommandLineW(),L"--small-screen")) {
+        info->rcMonitor.left=0;info->rcMonitor.top=0;
         info->rcMonitor.right=info->rcMonitor.left+1024;
         info->rcMonitor.bottom=info->rcMonitor.top+720;
         info->rcWork=info->rcMonitor;info->rcWork.bottom-=40;

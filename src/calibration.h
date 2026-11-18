@@ -21,6 +21,7 @@ private:
         int progressY=0,progressHeight=0,rowsY=0,rowsHeight=0,statusY=0,statusHeight=0;
         int hintY=0,hintHeight=0,buttonsY=0,buttonHeight=28,desiredHeight=0;
         int cancelWidth=72,backWidth=64,nextWidth=88,limitWidth=96;
+        int buttonRows=1;
     };
     LayoutInfo MeasureLayout(int width,int height) const;
     std::wstring StepText() const;

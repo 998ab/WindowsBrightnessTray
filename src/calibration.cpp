@@ -264,15 +264,16 @@ CalibrationWindow::LayoutInfo CalibrationWindow::MeasureLayout(int width,int hei
     layout.rowsY=layout.progressY+layout.progressHeight+8;
     layout.statusHeight=std::max(textHeight(message_,surface_.caption),textHeight(L"Ag",surface_.caption)*2);
     layout.hintHeight=textHeight(tr(L"Esc cancels and restores original brightness."),surface_.caption);
-    int below=10+layout.statusHeight+6+layout.hintHeight+12+layout.buttonHeight+16;
+    layout.cancelWidth=buttonWidth(CancelButton,72);layout.backWidth=buttonWidth(Back,64);
+    layout.nextWidth=buttonWidth(Next,88);layout.limitWidth=buttonWidth(Limit,96);
+    if(width<layout.cancelWidth+layout.backWidth+layout.nextWidth+56)layout.buttonRows=width>=layout.backWidth+layout.nextWidth+40?2:3;
+    int below=10+layout.statusHeight+6+layout.hintHeight+12+layout.buttonHeight+16+(layout.buttonRows-1)*(layout.buttonHeight+8);
     int wantedRows=std::min(3,static_cast<int>(monitors_.size()))*68;
     layout.desiredHeight=layout.rowsY+wantedRows+below;
     layout.rowsHeight=std::max(40,height-layout.rowsY-below);
     layout.statusY=layout.rowsY+layout.rowsHeight+10;
     layout.hintY=layout.statusY+layout.statusHeight+6;
     layout.buttonsY=layout.hintY+layout.hintHeight+12;
-    layout.cancelWidth=buttonWidth(CancelButton,72);layout.backWidth=buttonWidth(Back,64);
-    layout.nextWidth=buttonWidth(Next,88);layout.limitWidth=buttonWidth(Limit,96);
     ReleaseDC(window_,dc);return layout;
 }
 void CalibrationWindow::Layout(bool fit,bool reveal) {
@@ -295,7 +296,7 @@ void CalibrationWindow::Layout(bool fit,bool reveal) {
         SetWindowPos(window_,nullptr,x,y,width,height,SWP_NOZORDER|SWP_NOACTIVATE);
         GetClientRect(window_,&r);h=MulDiv(r.bottom,96,static_cast<int>(surface_.dpi));layout=MeasureLayout(w,h);
     }
-    pageHeight_=layout.buttonsY+layout.buttonHeight+16;
+    pageHeight_=layout.buttonsY+layout.buttonHeight+16+(layout.buttonRows-1)*(layout.buttonHeight+8);
     pageScroll_=std::clamp(pageScroll_,0,std::max(0,pageHeight_-h));
     SCROLLINFO page{sizeof(page),SIF_RANGE|SIF_PAGE|SIF_POS,0,pageHeight_-1,static_cast<UINT>(h),pageScroll_,0};SetScrollInfo(window_,SB_VERT,&page,TRUE);
     GetClientRect(window_,&r);int currentWidth=MulDiv(r.right,96,static_cast<int>(surface_.dpi));
@@ -305,8 +306,11 @@ void CalibrationWindow::Layout(bool fit,bool reveal) {
     ui::Place(GetDlgItem(window_,Limit),surface_,w-16-layout.limitWidth,layout.referenceY-pageScroll_,layout.limitWidth,layout.buttonHeight);
     ui::Place(rows_,surface_,4,layout.rowsY-pageScroll_,w-8,layout.rowsHeight);
     ui::Place(GetDlgItem(window_,CancelButton),surface_,16,layout.buttonsY-pageScroll_,layout.cancelWidth,layout.buttonHeight);
-    ui::Place(GetDlgItem(window_,Back),surface_,w-24-layout.nextWidth-layout.backWidth,layout.buttonsY-pageScroll_,layout.backWidth,layout.buttonHeight);
-    ui::Place(GetDlgItem(window_,Next),surface_,w-16-layout.nextWidth,layout.buttonsY-pageScroll_,layout.nextWidth,layout.buttonHeight);
+    int backX=layout.buttonRows==3?16:w-24-layout.nextWidth-layout.backWidth;
+    int backY=layout.buttonsY+(layout.buttonRows>1?layout.buttonHeight+8:0);
+    int nextY=layout.buttonsY+(layout.buttonRows-1)*(layout.buttonHeight+8);
+    ui::Place(GetDlgItem(window_,Back),surface_,backX,backY-pageScroll_,layout.backWidth,layout.buttonHeight);
+    ui::Place(GetDlgItem(window_,Next),surface_,w-16-layout.nextWidth,nextY-pageScroll_,layout.nextWidth,layout.buttonHeight);
     LayoutRows();InvalidateRect(window_,nullptr,FALSE);layoutBusy_=false;
     if(reveal)Reveal(GetFocus());
 }
