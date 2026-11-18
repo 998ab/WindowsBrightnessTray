@@ -1,25 +1,27 @@
 # README media
 
-## Current gallery · v0.2.5
+## Current README · v0.2.5
 
-The main README uses fresh captures of BrightnessTray's native Win32 interface in demo mode. Virtual monitors are used throughout; no physical monitor brightness was changed for these recordings.
+The README uses a small placement diagram, an illustrated tray interaction, and plain native screenshots. It does not use the earlier promotional covers or feature cards.
 
-| Asset | Content |
+| Asset | Source |
 | --- | --- |
-| `hero.png` | Current linked-monitor panel on the README cover. |
-| `wheel.gif` | Actual wheel input over the shared slider: 50% → 70% → 50%, including the native sun animation. The tray uses the same brightness direction. |
-| `brightness.gif` | Actual shared-slider changes: 50% → 80% → 25% → 50%. The thumb and confirmed fill are captured from the app. |
-| `calibration-v2.gif` | All seven wizard pages, from introduction through five-point review. Values are illustrative, not measured calibration results. |
-| `settings-v2.png` | Current English settings, including the saved-calibration switch. |
-| `themes-v2.png` | Current dark and light native panels. |
-| `wheel-still.png`, `brightness-still.png`, `calibration-still.png` | Static alternatives selected by the README when the browser requests reduced motion. |
+| `tray-location.png` | Actual 320 × 250 native panel placed above a schematic notification area. Panel alignment follows the production bottom-taskbar placement rule: right-aligned to the icon, with a 10-DIP gap above the taskbar. |
+| `tray-wheel.gif` | Illustrated pointer over the production-rendered sun icon. Positive and negative wheel deltas are replayed through the production tray-wheel message handler. Native demo acknowledgements provide the 50% → 70% → 50% values. The final click and panel reveal are illustrated. |
+| `tray-wheel-still.png` | Static reduced-motion alternative to the tray interaction. |
+| `settings-native.png` | Unscaled native English Settings window. |
+| `calibration-native.png` | Native midpoint calibration page. |
 
-A native capture harness hosts the production windows, rendering, event handlers, and demo monitor worker in an isolated process. Screenshots exclude other desktop content. Calibration captures include only the wizard; the actual full-height comparison strips appear on the demo display edges outside that window.
+The desktop, taskbar, pointer, scroll arrows, and explanatory percentage annotation are drawn for the diagrams. They are **not recordings of the Windows shell or its low-level input hook**. The percentage label is an explanation, not an on-screen display supplied by the app. The panel and icon are rendered by the actual application code; they are not AI-generated or recreated controls.
 
-Presentation backgrounds, captions, shadows, and layout are added around the native captures. Controls and reported brightness are not redrawn or generated. Long idle gaps are shortened; actual transitions are retained. GIFs loop and use fixed palettes; the two motion recordings also omit unchanged pixels for compact files. These are interface demonstrations, not measurements of device latency, backlight luminance, or power use.
+A native capture harness hosts the production windows, rendering, event handlers, and demo monitor worker. It records native panel frames, native tray-icon frames, and acknowledged demo brightness values. The illustrated sequence runs at 15 frames per second for 7 seconds: hover, wheel up, wheel down, then a panel reveal. The GIF uses a fixed palette and transparent unchanged pixels. No physical monitor brightness is changed.
 
-## Earlier captures
+The schematic is for a visible icon on a bottom taskbar. Windows can instead place the icon in its hidden-icons menu; the real app also supports that anchor and other taskbar positions. Actual OS themes and tray contents vary.
 
-The older `tray-scroll.gif`, `synchronization.gif`, `calibration-walkthrough.gif`, `themes.png`, `languages.png`, `calibration.png`, and their stills are retained as historical material. They show earlier interfaces and are not used for the current README gallery.
+Calibration values are illustrative. The screenshot includes the wizard; comparison strips appear on display edges outside that window. Interface demonstrations do not measure physical luminance, device latency, or power use.
 
-The historical tray-scroll recording used the installed application and real monitors. Its animated mouse and direction labels were editorial annotations, rather than captured wheel events.
+## Earlier assets
+
+The previous `hero.png`, `wheel.gif`, `brightness.gif`, `calibration-v2.gif`, `settings-v2.png`, `themes-v2.png`, and accompanying stills are retained as earlier presentation material. They are not used by the current main README.
+
+The historical `tray-scroll.gif` used an older installed application and real monitors. Its animated mouse and direction labels were editorial annotations; it also shows an older icon and brightness overlay, so it is not used as an example of the current application.

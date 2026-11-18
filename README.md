@@ -1,124 +1,102 @@
-<div align="center">
-
 # BrightnessTray
 
-**External monitor brightness. Right in your Windows tray.**
+A small Windows tray application for adjusting external monitor brightness through DDC/CI.
 
-[**Download for Windows**](https://github.com/998ab/WindowsBrightnessTray/releases/latest) &nbsp; · &nbsp; [What's new](docs/releases/v0.2.5.md) &nbsp; · &nbsp; [Contribute](CONTRIBUTING.md)
+[Download](https://github.com/998ab/WindowsBrightnessTray/releases/latest) · [Release notes](docs/releases/v0.2.5.md) · [Contributing](CONTRIBUTING.md)
 
-[![GitHub stars](https://img.shields.io/github/stars/998ab/WindowsBrightnessTray?style=flat-square&label=stars&color=8dccff)](https://github.com/998ab/WindowsBrightnessTray/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/998ab/WindowsBrightnessTray?style=flat-square&label=forks&color=8dccff)](https://github.com/998ab/WindowsBrightnessTray/forks)
-[![GitHub release asset downloads](https://img.shields.io/github/downloads/998ab/WindowsBrightnessTray/total?style=flat-square&label=downloads&color=8dccff)](https://github.com/998ab/WindowsBrightnessTray/releases)
+[![Release](https://img.shields.io/github/v/release/998ab/WindowsBrightnessTray?style=flat&label=release&color=687887)](https://github.com/998ab/WindowsBrightnessTray/releases/latest)
+[![Build](https://img.shields.io/github/actions/workflow/status/998ab/WindowsBrightnessTray/build.yml?branch=main&style=flat&label=build)](https://github.com/998ab/WindowsBrightnessTray/actions/workflows/build.yml)
+[![Downloads](https://img.shields.io/github/downloads/998ab/WindowsBrightnessTray/total?style=flat&color=687887)](https://github.com/998ab/WindowsBrightnessTray/releases)
+[![Stars](https://img.shields.io/github/stars/998ab/WindowsBrightnessTray?style=flat&color=687887)](https://github.com/998ab/WindowsBrightnessTray/stargazers)
+[![Forks](https://img.shields.io/github/forks/998ab/WindowsBrightnessTray?style=flat&color=687887)](https://github.com/998ab/WindowsBrightnessTray/forks)
+[![MIT](https://img.shields.io/badge/license-MIT-687887?style=flat)](LICENSE)
 
-[![Latest release](https://img.shields.io/github/v/release/998ab/WindowsBrightnessTray?style=flat-square&label=release&color=8dccff)](https://github.com/998ab/WindowsBrightnessTray/releases/latest)
-[![Build status](https://img.shields.io/github/actions/workflow/status/998ab/WindowsBrightnessTray/build.yml?branch=main&style=flat-square&label=build)](https://github.com/998ab/WindowsBrightnessTray/actions/workflows/build.yml)
-[![MIT License](https://img.shields.io/badge/license-MIT-8dccff?style=flat-square)](LICENSE)
+Click the sun icon in the notification area, beside the Windows clock. The panel opens next to that icon. If the icon is hidden, expand the **⌃** menu first.
 
-Windows 10 / 11 · x64 · DDC/CI · English & Russian
+<img src="docs/media/tray-location.png" alt="Placement diagram: the native BrightnessTray panel opens above its sun icon near the Windows clock." width="760">
 
-</div>
+<sub>Placement illustration using the actual v0.2.5 panel. The desktop and notification area are schematic.</sub>
 
-![BrightnessTray: native brightness controls for two linked monitors.](docs/media/hero.png)
-
-BrightnessTray is a free, open-source app that puts your external displays within a scroll of your mouse. Adjust one monitor or link them together, match their brightness, and get back to what you were doing.
-
-| Scroll to adjust | Link your displays | Keep it local |
-| --- | --- | --- |
-| Wheel up to brighten, down to dim. Hold **Ctrl** for 1% steps. | One shared slider, with a separate calibration curve for each display. | Native C++/Win32. No account, telemetry, network access, or update checks. |
-
-## Up to brighten. Down to dim.
-
-Scroll over the tray sun to adjust brightness without opening the panel. The same direction works over a slider. Choose a **1%, 2%, or 5%** wheel step in Settings; **Ctrl + wheel** always uses 1%.
-
-<picture>
-  <source media="(prefers-reduced-motion: reduce)" srcset="docs/media/wheel-still.png">
-  <img src="docs/media/wheel.gif" alt="Actual native panel: wheel input raises the shared brightness from 50% to 70%, then lowers it to 50%; the sun rotates during input." width="1000">
-</picture>
-
-## One slider. Every display.
-
-Click the **link** button to control your monitors together, or unlink them for individual adjustment. The thumb sets your target; the blue line follows brightness acknowledged by the monitor.
-
-<picture>
-  <source media="(prefers-reduced-motion: reduce)" srcset="docs/media/brightness-still.png">
-  <img src="docs/media/brightness.gif" alt="Two linked demo monitors follow shared brightness targets of 80%, 25%, and 50%, with confirmed progress following the target." width="1000">
-</picture>
-
-Click the sun to open or hide the panel. Press **Esc** to dismiss it. Right-click the tray icon for presets, monitor selection, and **Exit**. Brightness is also restored after system sleep or display power-off, with retries while monitors wake.
-
-## Match the light, not the numbers.
-
-Different monitors can look very different at the same percentage. **Settings → Match displays → Configure** walks you through a shared minimum, maximum, and three intermediate points.
-
-<picture>
-  <source media="(prefers-reduced-motion: reduce)" srcset="docs/media/calibration-still.png">
-  <img src="docs/media/calibration-v2.gif" alt="The native calibration wizard: introduction, shared maximum and minimum, 50%, 25%, 75%, and review of five-point brightness curves." width="1000">
-</picture>
-
-At the 25%, 50%, and 75% stages, the reference stays fixed while you match the other displays. Comparison strips sit at facing display edges. **Cancel restores the original brightness.** Matching is visual, rather than a colorimeter measurement. [How calibration works →](docs/calibration.md)
-
-### Your full brightness range is still there.
-
-Turn **Settings → Apply saved calibration** off to use each monitor's full hardware range, including its maximum brightness. Turn it back on to use the matched range again. Your curves are preserved, and switching modes keeps the current hardware brightness.
-
-![BrightnessTray settings: response presets, wheel steps, saved calibration toggle, and language selection.](docs/media/settings-v2.png)
-
-## At home on Windows.
-
-Light and dark themes follow Windows. English and Russian are built in, with live language switching. The two-monitor linked panel is **320 × 250 DIPs**, and Settings fits in **320 × 348 DIPs**, with the same readable fonts. Settings and calibration are shared between the installed and portable versions.
-
-![The current native BrightnessTray interface in dark and light themes.](docs/media/themes-v2.png)
-
-## Get started
+## Install
 
 1. Enable **DDC/CI** in your monitor's on-screen menu.
-2. [Download the latest release](https://github.com/998ab/WindowsBrightnessTray/releases/latest): choose the **Setup** installer or the **Portable ZIP**.
-3. Run BrightnessTray and look for the sun in the Windows tray. Scroll to adjust brightness.
+2. [Download the latest release](https://github.com/998ab/WindowsBrightnessTray/releases/latest). Choose **Setup** for installation, or extract the **Portable ZIP**.
+3. Run BrightnessTray and find the sun icon in the notification area.
 
-The installer is per-user and needs no administrator rights. It offers an optional **start with Windows** task. The portable version only needs to be extracted and run.
+**Requirements:** Windows 10 1809+ or Windows 11, x64, and an external monitor with working DDC/CI support. Support and response time depend on the monitor, driver, and connection adapters.
 
-**Requirements:** Windows 10 1809+ or Windows 11, x64, and an external monitor with working DDC/CI support. Monitor firmware and connection adapters can affect availability and response time.
+The installer runs per user without administrator rights and offers an optional **start with Windows** task. Exit BrightnessTray before upgrading; preferences and calibration are preserved. Release files include SHA-256 checksums. Binaries are unsigned.
 
-**Upgrading:** exit BrightnessTray first. Preferences and calibration are preserved. Release downloads include SHA-256 checksums; binaries are unsigned.
+## Adjust brightness
+
+Scroll while the pointer is **over the tray icon**. The panel can stay closed. Scrolling up increases brightness; scrolling down decreases it.
+
+<picture>
+  <source media="(prefers-reduced-motion: reduce)" srcset="docs/media/tray-wheel-still.png">
+  <img src="docs/media/tray-wheel.gif" alt="Illustrated tray interaction: the pointer stays over the sun icon while wheel-up raises demo brightness from 50% to 70%, and wheel-down lowers it to 50%. A click then opens the native panel above the icon." width="760">
+</picture>
+
+<sub>Illustrated tray interaction with native app frames and demo brightness. The counter is an annotation. [Media notes](docs/media/README.md).</sub>
+
+| Action | Result |
+| --- | --- |
+| Wheel over the tray icon or a slider | Adjust brightness by the selected 1%, 2%, or 5% step. |
+| **Ctrl + wheel** | Adjust in 1% steps. |
+| Click the tray icon | Open or hide the panel. |
+| Click the link button | Switch between shared and individual monitor control. |
+| Right-click the tray icon | Open presets, monitor selection, and Exit. |
+| **Esc** | Dismiss the panel or cancel calibration. |
+
+The slider thumb sets the target. The blue line follows brightness acknowledged by the monitor; it does not measure physical luminance. Brightness is restored after sleep or display power-off, with retries while monitors wake.
+
+## Calibration
+
+Different monitors can look different at the same percentage. Open **Settings → Match displays → Configure** to match a common minimum, maximum, and three intermediate points.
+
+<img src="docs/media/calibration-native.png" alt="Native calibration wizard at the midpoint matching step, with separate monitor sliders and Back, Cancel, and Next actions." width="420">
+
+At 25%, 50%, and 75%, the reference display stays fixed while you adjust the others. Comparison strips appear at facing screen edges. **Cancel restores the original brightness.** Matching is visual, rather than a colorimeter measurement. [Calibration guide](docs/calibration.md).
+
+To use the full hardware range again, turn **Settings → Calibration** off. Turn it back on to reuse the saved curves. Switching modes preserves the current hardware brightness.
+
+## Settings
+
+Choose the response speed, wheel step, calibration state, and language. Light and dark themes follow Windows. English and Russian are included.
+
+<img src="docs/media/settings-native.png" alt="Native Settings window with response and wheel-step groups, calibration switch, language menu, and refresh button." width="320">
+
+The linked two-monitor panel is 320 × 250 DIPs; Settings is 320 × 348 DIPs. Small work areas use scrolling. Both installed and portable versions use the same profile:
+
+```text
+%LOCALAPPDATA%\BrightnessTray\settings.ini
+```
 
 <details>
-<summary><strong>Useful details</strong></summary>
+<summary>Troubleshooting</summary>
 
-### A monitor is missing or does not respond
+**A monitor is missing or does not respond.** Check DDC/CI in the monitor's menu, then use **Settings → Refresh**. Some adapters and connection paths do not pass DDC/CI commands.
 
-Check that DDC/CI is enabled in the monitor menu, then use **Settings → Refresh**. Support depends on the monitor, driver, and connection path.
+**Brightness changes in visible steps.** Monitor firmware can limit brightness resolution and command speed. Try a different response preset in Settings.
 
-### What does the blue line actually mean?
+**The icon is missing.** Expand the Windows notification area's **⌃** menu. You can drag the sun icon from that menu onto the taskbar.
 
-It follows values acknowledged by the monitor. It does not measure physical luminance. Hardware brightness steps and irregular response times can still be visible.
+</details>
 
-### Where are my settings?
+## Build from source
 
-`%LOCALAPPDATA%\BrightnessTray\settings.ini`
-
-The installed and portable versions use the same profile. Demo mode uses virtual monitors and a separate profile.
-
-### Build from source
-
-Install Visual Studio 2022 C++ Build Tools with the Windows SDK, then run:
+Install Visual Studio 2022 C++ Build Tools and the Windows SDK, then run:
 
 ```powershell
 ./build.ps1 -OutputDirectory build/release
 ./build/release/BrightnessTray.exe
 ```
 
-The build also runs the test suite without changing physical monitor brightness. [Development and packaging →](docs/development.md)
+The build runs the test suite using virtual monitors. [Development and packaging](docs/development.md).
 
-</details>
+## Contributing
 
-## Made to be shared.
+Bug reports, translations, documentation improvements, and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) or [open an issue](https://github.com/998ab/WindowsBrightnessTray/issues/new).
 
-Bug reports, translations, documentation improvements, and pull requests are welcome. [Read the contributing guide](CONTRIBUTING.md), [report a bug](https://github.com/998ab/WindowsBrightnessTray/issues/new), or [browse the source](src).
+Written in C++/Win32. No account, telemetry, network access, or automatic update checks. [MIT licensed](LICENSE).
 
-The counters above show GitHub stars, forks, and release-asset downloads across all releases. Downloads count files, rather than unique users.
-
-<sub>Images and GIFs show the actual v0.2.5 native interface with virtual demo monitors. Presentation backgrounds and captions are added; UI controls are not redrawn. [Media notes and still images](docs/media/README.md).</sub>
-
----
-
-**MIT licensed.** Use, modify, redistribute, and sell the software, including in commercial projects, under the terms of the [MIT License](LICENSE).
+<sub>Download counters count release files, not unique users. [Media provenance and static alternatives](docs/media/README.md).</sub>
