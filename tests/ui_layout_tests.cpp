@@ -49,9 +49,12 @@ void CheckCompactLayouts(){
         HDC dc=GetDC(window);auto old=SelectObject(dc,surface.caption);RECT error{0,0,surface.S(288),0};
         DrawTextW(dc,status.c_str(),-1,&error,DT_CALCRECT|DT_WORDBREAK|DT_NOPREFIX);SelectObject(dc,old);ReleaseDC(window,dc);
         CheckUi(surface.S(ErrorHeight()-12)>=error.bottom,"error text gets its measured height without overlapping controls");
-        SetPage(true);CheckUi(Width(window)==320&&Height(window)==348,"compact settings retain their footprint at each DPI");
-        for(int id:{SpeedPresetBase,SpeedPresetBase+1,SpeedPresetBase+2,WheelPresetBase,WheelPresetBase+1,WheelPresetBase+2,MatchSettings,CalibrationToggle,Refresh})CheckButtonLabel(Control(id));
-        CheckButtonLabel(Control(LanguageSelect),32);
+        SetPage(true);MONITORINFO work{sizeof(work)};GetMonitorInfoW(MonitorFromWindow(window,MONITOR_DEFAULTTONEAREST),&work);
+        int available=MulDiv(work.rcWork.bottom-work.rcWork.top,96,static_cast<int>(dpi))-24;
+        CheckUi(Width(window)==320&&Height(window)==std::min(348,available),"compact settings fit their content or the available work area at each DPI");
+        for(int id:{SpeedPresetBase,SpeedPresetBase+1,SpeedPresetBase+2,WheelPresetBase,WheelPresetBase+1,WheelPresetBase+2,MatchSettings,CalibrationToggle,Refresh}){SetFocus(Control(id));CheckButtonLabel(Control(id));}
+        SetFocus(Control(LanguageSelect));CheckButtonLabel(Control(LanguageSelect),32);
+        settingsOffset=0;LayoutSettings();
         for(const wchar_t* hint:{tr(L"No intermediate steps."),tr(L"Fast response to brightness changes."),tr(L"Smaller steps for a gentler transition.")}){
             dc=GetDC(window);old=SelectObject(dc,surface.caption);RECT measured{};DrawTextW(dc,hint,-1,&measured,DT_CALCRECT|DT_SINGLELINE|DT_NOPREFIX);SelectObject(dc,old);ReleaseDC(window,dc);
             CheckUi(measured.right<=surface.S(288)&&measured.bottom<=surface.S(18),"all response hints fit without clipping");
@@ -63,7 +66,8 @@ void CheckCompactLayouts(){
         SendMessageW(calibration.Handle(),WM_DPICHANGED,MAKEWPARAM(dpi,dpi),reinterpret_cast<LPARAM>(&calRect));
         for(int step=0;step<7;++step){
             auto cal=calibration.Handle();
-            for(int id:{101,102,103,104})CheckButtonLabel(GetDlgItem(cal,id));
+            SendMessageW(cal,WM_VSCROLL,SB_BOTTOM,0);for(int id:{101,102,103})CheckButtonLabel(GetDlgItem(cal,id));
+            SendMessageW(cal,WM_VSCROLL,SB_TOP,0);CheckButtonLabel(GetDlgItem(cal,104));
             RECT outer{};GetWindowRect(cal,&outer);
             CheckUi(outer.right-outer.left<=surface.S(420),"calibration keeps its compact width");
             if(dpi==96)CheckUi(outer.bottom-outer.top<=surface.S(560),"calibration uses measured content instead of a 640-DIP fixed height");
@@ -88,7 +92,7 @@ void CheckCompactLayouts(){
     RECT wizard{};GetWindowRect(calibration.Handle(),&wizard);
     int strip=std::min(surface.S(240),static_cast<int>(screen.rcMonitor.bottom-screen.rcMonitor.top)/4);
     CheckUi(wizard.bottom<=screen.rcMonitor.bottom-strip-surface.S(12),"high-DPI wizard stays above the comparison strip on stacked displays");
-    for(int id:{102,103})CheckButtonLabel(GetDlgItem(calibration.Handle(),id));
+    for(int id:{102,103}){SetFocus(GetDlgItem(calibration.Handle(),id));CheckButtonLabel(GetDlgItem(calibration.Handle(),id));}
     CaptureUi(calibration.Handle(),L"compact-stacked-200.bmp");calibration.Cancel();
 }
 int main(){int result=0;try{

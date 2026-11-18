@@ -48,9 +48,11 @@ try {
     if ($LASTEXITCODE) { throw 'Popup smoke tests failed' }
     & ".\$OutputDirectory\popup_smoke.exe" (Join-Path (Resolve-Path $OutputDirectory) 'BrightnessTray.exe') '--exercise-failure-cleanup'
     if ($LASTEXITCODE) { throw 'Popup failure cleanup test failed' }
-    & cl.exe /nologo /std:c++17 /O2 /MT /W4 /EHsc /utf-8 /DUNICODE /D_UNICODE /DWIN32_LEAN_AND_MEAN /DNOMINMAX tests/ui_layout_tests.cpp src/display_names.cpp src/monitors.cpp src/ui.cpp src/calibration.cpp src/tray.cpp "/Fo:$OutputDirectory/" "/Fe:$OutputDirectory/ui_layout_tests.exe" /link "$OutputDirectory/app.res" user32.lib gdi32.lib shell32.lib comctl32.lib dxva2.lib dwmapi.lib uxtheme.lib advapi32.lib
+    & cl.exe /nologo /std:c++17 /O2 /MT /W4 /EHsc /utf-8 /DUNICODE /D_UNICODE /DWIN32_LEAN_AND_MEAN /DNOMINMAX "/FI$(Join-Path $PSScriptRoot 'tests/ui_test_screen.h')" tests/ui_layout_tests.cpp src/display_names.cpp src/monitors.cpp src/ui.cpp src/calibration.cpp src/tray.cpp "/Fo:$OutputDirectory/" "/Fe:$OutputDirectory/ui_layout_tests.exe" /link "$OutputDirectory/app.res" user32.lib gdi32.lib shell32.lib comctl32.lib dxva2.lib dwmapi.lib uxtheme.lib advapi32.lib
     if ($LASTEXITCODE) { throw 'UI layout test build failed' }
     & ".\$OutputDirectory\ui_layout_tests.exe"
     if ($LASTEXITCODE) { throw 'UI layout tests failed' }
+    & ".\$OutputDirectory\ui_layout_tests.exe" '--small-screen'
+    if ($LASTEXITCODE) { throw 'Small-screen UI layout tests failed' }
 } finally { Pop-Location }
 

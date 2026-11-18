@@ -57,7 +57,7 @@ void CalibrationWindow::Open(HWND owner,const std::vector<Monitor>& monitors,siz
     if(window_){SetForegroundWindow(window_);return;}
     if(monitors.size()<2)return;
     owner_=owner;monitors_=monitors;reference_=std::min(reference,monitors_.size()-1);worker_=&worker;save_=std::move(save);
-    nodes_.clear();values_.clear();patterns_.clear();scroll_=0;step_=0;touched_=false;
+    nodes_.clear();values_.clear();patterns_.clear();scroll_=0;pageScroll_=0;step_=0;touched_=false;
     for(const auto& m:monitors_){nodes_.push_back(m.calibration.Nodes());values_.push_back(FromRaw(m.current,m.minimum,m.maximum));}
     originals_.assign(monitors_.size(),0);requests_.assign(monitors_.size(),0);known_.assign(monitors_.size(),false);failed_.assign(monitors_.size(),false);
     Normalize();
@@ -83,6 +83,7 @@ void CalibrationWindow::Open(HWND owner,const std::vector<Monitor>& monitors,siz
     ui::Button(window_,surface_,tr(L"Start"),Next,true);
     ui::Button(window_,surface_,tr(L"All to 100%"),Limit);
     ui::Button(window_,surface_,tr(L"Reference"),Reference);
+    for(int id:{Back,Next,CancelButton,Limit,Reference})SetWindowSubclass(GetDlgItem(window_,id),RevealRow,91,reinterpret_cast<DWORD_PTR>(this));
     MONITORINFO info{sizeof(info)};GetMonitorInfoW(MonitorFromRect(&bounds,MONITOR_DEFAULTTONEAREST),&info);
     auto placements=PatternLayout(monitors_,reference_);
     for(const auto& p:placements)if(p.monitor==reference_) {
@@ -112,7 +113,7 @@ LRESULT CALLBACK CalibrationWindow::RowsProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM
     case WM_PAINT:Buffer(hwnd,[&](HDC dc){if(self->surface_.body)self->PaintRows(dc);});return 0;
     case WM_SIZE:self->LayoutRows();return 0;
     case WM_HSCROLL:case WM_COMMAND:case WM_NOTIFY:case WM_DRAWITEM:return SendMessageW(self->window_,msg,wp,lp);
-    case WM_MOUSEWHEEL:self->scroll_-=GET_WHEEL_DELTA_WPARAM(wp)/WHEEL_DELTA*40;self->LayoutRows();return 0;
+    case WM_MOUSEWHEEL:{RECT r;GetClientRect(self->window_,&r);if(self->surface_.S(self->pageHeight_)>r.bottom)return SendMessageW(self->window_,msg,wp,lp);self->scroll_-=GET_WHEEL_DELTA_WPARAM(wp)/WHEEL_DELTA*40;self->LayoutRows();return 0;}
     case WM_VSCROLL:{
         SCROLLINFO si{sizeof(si),SIF_ALL};GetScrollInfo(hwnd,SB_VERT,&si);int cmd=LOWORD(wp);
         if(cmd==SB_THUMBTRACK)self->scroll_=si.nTrackPos;
@@ -124,10 +125,15 @@ LRESULT CALLBACK CalibrationWindow::RowsProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM
 }
 LRESULT CALLBACK CalibrationWindow::RevealRow(HWND child,UINT message,WPARAM wp,LPARAM lp,UINT_PTR,DWORD_PTR data){
     auto self=reinterpret_cast<CalibrationWindow*>(data);
-    if(message==WM_SETFOCUS){
+    if(message==WM_SETFOCUS&&GetParent(child)==self->rows_){
         RECT r,view;GetWindowRect(child,&r);MapWindowPoints(nullptr,self->rows_,reinterpret_cast<POINT*>(&r),2);GetClientRect(self->rows_,&view);
         int delta=r.top<self->surface_.S(4)?r.top-self->surface_.S(4):r.bottom>view.bottom-self->surface_.S(4)?r.bottom-view.bottom+self->surface_.S(4):0;
         if(delta){self->scroll_+=MulDiv(delta,96,static_cast<int>(self->surface_.dpi));self->LayoutRows();}
+    }
+    if(message==WM_SETFOCUS){
+        RECT r,view;GetWindowRect(child,&r);MapWindowPoints(nullptr,self->window_,reinterpret_cast<POINT*>(&r),2);GetClientRect(self->window_,&view);
+        int delta=r.top<self->surface_.S(4)?r.top-self->surface_.S(4):r.bottom>view.bottom-self->surface_.S(4)?r.bottom-view.bottom+self->surface_.S(4):0;
+        if(delta){self->pageScroll_+=MulDiv(delta,96,static_cast<int>(self->surface_.dpi));self->Layout(false);}
     }
     if(message==WM_NCDESTROY)RemoveWindowSubclass(child,RevealRow,91);
     return DefSubclassProc(child,message,wp,lp);
@@ -165,7 +171,7 @@ void CalibrationWindow::Preview(const std::vector<size_t>& indices) {
     worker_->QueueBatch(std::move(commands));message_=tr(L"Applying brightness…");Update();
 }
 void CalibrationWindow::Go(int step) {
-    int previous=step_;step_=step;Normalize();
+    int previous=step_;step_=step;pageScroll_=0;Normalize();
     const int anchor=anchors[step_];
     std::vector<size_t> all;
     for(size_t i=0;i<monitors_.size();++i) {
@@ -283,13 +289,18 @@ void CalibrationWindow::Layout(bool fit) {
         SetWindowPos(window_,nullptr,x,y,width,height,SWP_NOZORDER|SWP_NOACTIVATE);
         GetClientRect(window_,&r);h=MulDiv(r.bottom,96,static_cast<int>(surface_.dpi));layout=MeasureLayout(w,h);
     }
+    pageHeight_=layout.buttonsY+layout.buttonHeight+16;
+    pageScroll_=std::clamp(pageScroll_,0,std::max(0,pageHeight_-h));
+    SCROLLINFO page{sizeof(page),SIF_RANGE|SIF_PAGE|SIF_POS,0,pageHeight_-1,static_cast<UINT>(h),pageScroll_,0};SetScrollInfo(window_,SB_VERT,&page,TRUE);
+    GetClientRect(window_,&r);int currentWidth=MulDiv(r.right,96,static_cast<int>(surface_.dpi));
+    if(currentWidth!=w){layoutBusy_=false;Layout(false);return;}
     bool limit=step_==1||step_==2;
-    ui::Place(GetDlgItem(window_,Reference),surface_,16,layout.referenceY,w-32-(limit?layout.limitWidth+8:0),layout.buttonHeight);
-    ui::Place(GetDlgItem(window_,Limit),surface_,w-16-layout.limitWidth,layout.referenceY,layout.limitWidth,layout.buttonHeight);
-    ui::Place(rows_,surface_,4,layout.rowsY,w-8,layout.rowsHeight);
-    ui::Place(GetDlgItem(window_,CancelButton),surface_,16,layout.buttonsY,layout.cancelWidth,layout.buttonHeight);
-    ui::Place(GetDlgItem(window_,Back),surface_,w-24-layout.nextWidth-layout.backWidth,layout.buttonsY,layout.backWidth,layout.buttonHeight);
-    ui::Place(GetDlgItem(window_,Next),surface_,w-16-layout.nextWidth,layout.buttonsY,layout.nextWidth,layout.buttonHeight);
+    ui::Place(GetDlgItem(window_,Reference),surface_,16,layout.referenceY-pageScroll_,w-32-(limit?layout.limitWidth+8:0),layout.buttonHeight);
+    ui::Place(GetDlgItem(window_,Limit),surface_,w-16-layout.limitWidth,layout.referenceY-pageScroll_,layout.limitWidth,layout.buttonHeight);
+    ui::Place(rows_,surface_,4,layout.rowsY-pageScroll_,w-8,layout.rowsHeight);
+    ui::Place(GetDlgItem(window_,CancelButton),surface_,16,layout.buttonsY-pageScroll_,layout.cancelWidth,layout.buttonHeight);
+    ui::Place(GetDlgItem(window_,Back),surface_,w-24-layout.nextWidth-layout.backWidth,layout.buttonsY-pageScroll_,layout.backWidth,layout.buttonHeight);
+    ui::Place(GetDlgItem(window_,Next),surface_,w-16-layout.nextWidth,layout.buttonsY-pageScroll_,layout.nextWidth,layout.buttonHeight);
     LayoutRows();InvalidateRect(window_,nullptr,FALSE);layoutBusy_=false;
 }
 void CalibrationWindow::LayoutRows() {
@@ -305,12 +316,14 @@ void CalibrationWindow::Paint(HDC dc) {
     int w=MulDiv(r.right,96,static_cast<int>(surface_.dpi)),h=MulDiv(r.bottom,96,static_cast<int>(surface_.dpi));
     auto layout=MeasureLayout(w,h);
     auto box=[&](int x,int y,int width,int height){return RECT{surface_.S(x),surface_.S(y),surface_.S(x+width),surface_.S(y+height)};};
+    SetViewportOrgEx(dc,0,-surface_.S(pageScroll_),nullptr);
     ui::Text(dc,tr(L"MATCH DISPLAYS  /  ")+std::to_wstring(monitors_.size()),box(16,10,w-32,18),surface_.caption,ui::colors.muted);
     ui::Text(dc,tr(titles[step_]),box(16,layout.titleY,w-32,layout.titleHeight),surface_.heading,ui::colors.text);
     ui::Text(dc,tr(descriptions[step_]),box(16,layout.descriptionY,w-32,layout.descriptionHeight),surface_.caption,ui::colors.muted);
     ui::Text(dc,StepText(),box(16,layout.progressY,w-32,layout.progressHeight),surface_.caption,ui::colors.accent);
     ui::Text(dc,message_,box(16,layout.statusY,w-32,layout.statusHeight),surface_.caption,ui::colors.muted);
     ui::Text(dc,tr(L"Esc cancels and restores original brightness."),box(16,layout.hintY,w-32,layout.hintHeight),surface_.caption,ui::colors.muted);
+    SetViewportOrgEx(dc,0,0,nullptr);
 }
 void CalibrationWindow::PaintRows(HDC dc) {
     RECT r;GetClientRect(rows_,&r);ui::Fill(dc,r,ui::colors.background);int w=MulDiv(r.right,96,static_cast<int>(surface_.dpi));
@@ -413,6 +426,16 @@ LRESULT CalibrationWindow::Message(UINT msg,WPARAM wp,LPARAM lp) {
     case WM_ERASEBKGND:return 1;
     case WM_PAINT:Buffer(window_,[&](HDC dc){if(surface_.body)Paint(dc);});return 0;
     case WM_SIZE:Layout(false);return 0;
+    case WM_MOUSEWHEEL:pageScroll_-=GET_WHEEL_DELTA_WPARAM(wp)/WHEEL_DELTA*40;Layout(false);return 0;
+    case WM_VSCROLL:{
+        SCROLLINFO si{sizeof(si),SIF_ALL};GetScrollInfo(window_,SB_VERT,&si);
+        switch(LOWORD(wp)){
+        case SB_TOP:pageScroll_=0;break;case SB_BOTTOM:pageScroll_=pageHeight_;break;
+        case SB_THUMBTRACK:pageScroll_=si.nTrackPos;break;
+        case SB_LINEUP:pageScroll_-=24;break;case SB_LINEDOWN:pageScroll_+=24;break;
+        case SB_PAGEUP:pageScroll_-=static_cast<int>(si.nPage);break;case SB_PAGEDOWN:pageScroll_+=static_cast<int>(si.nPage);break;
+        }Layout(false);return 0;
+    }
     case WM_GETMINMAXINFO:{
         int height=360;
         if(surface_.body&&rows_){
@@ -420,7 +443,8 @@ LRESULT CalibrationWindow::Message(UINT msg,WPARAM wp,LPARAM lp) {
             int width=MulDiv(r.right,96,static_cast<int>(surface_.dpi));auto layout=MeasureLayout(width,0);
             int rows=std::min(3,static_cast<int>(monitors_.size()))*68;
             height=layout.desiredHeight-rows+40;
-            reinterpret_cast<MINMAXINFO*>(lp)->ptMinTrackSize={surface_.S(360),surface_.S(height)+outer.bottom-outer.top-r.bottom};
+            auto work=WizardWorkArea(window_,monitors_,reference_,surface_.S(240));
+            reinterpret_cast<MINMAXINFO*>(lp)->ptMinTrackSize={std::min(surface_.S(360),static_cast<int>(work.right-work.left)-surface_.S(24)),std::min<int>(surface_.S(height)+outer.bottom-outer.top-r.bottom,static_cast<int>(work.bottom-work.top)-surface_.S(24))};
         }else reinterpret_cast<MINMAXINFO*>(lp)->ptMinTrackSize={surface_.S(360),surface_.S(height)};
         return 0;
     }

@@ -61,7 +61,7 @@ private:
     std::function<bool(const std::vector<Calibration>&)> save_;
     bool touched_=false,layoutBusy_=false;
     size_t reference_=0;
-    int step_=0,scroll_=0;
+    int step_=0,scroll_=0,pageScroll_=0,pageHeight_=0;
     std::wstring message_;
 };
 
