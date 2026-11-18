@@ -1,28 +1,25 @@
 # README media
 
-These images show the actual BrightnessTray v0.1.0 interface. The tray-scroll
-recording uses the installed application and real monitors. The other captures use
-demo mode with virtual displays.
+## Current gallery · v0.2.2
 
-- **tray-scroll.gif:** a real tray-wheel recording, with the main window closed.
-  Two upward wheel notches raise the shared target from 44% to 48%; two downward
-  notches return it to 44%. The real icon and popup are cropped from the recording;
-  surrounding desktop content is excluded. The animated mouse and direction labels
-  are editorial annotations timed to the observed changes, not captured wheel events.
-  Screen recording does not measure physical backlight luminance.
-- **tray-scroll-still.png:** static alternative from the same recording.
+The main README uses fresh captures of BrightnessTray's native Win32 interface in demo mode. Virtual monitors are used throughout; no physical monitor brightness was changed for these recordings.
 
-- **synchronization.gif:** shared brightness targets moving together; 10 frames,
-  looping playback. It illustrates the UI, not measured panel response or DDC timing.
-- **synchronization-still.png:** static alternative for reduced-motion viewers.
-- **themes.png:** the native dark and light interfaces at a shared 50% target.
-- **languages.png:** English and Russian settings, with a live language switch.
-- **calibration-walkthrough.gif:** the seven wizard pages, including the introduction
-  and final review. Demonstration values are illustrative, not a measured calibration.
-- **calibration.png:** the wizard and its actual full-height comparison strips,
-  arranged together to show how samples meet at the display edge.
+| Asset | Content |
+| --- | --- |
+| `hero.png` | Current linked-monitor panel on the README cover. |
+| `wheel.gif` | Actual wheel input over the shared slider: 50% → 70% → 50%, including the native sun animation. The tray uses the same brightness direction. |
+| `brightness.gif` | Actual shared-slider changes: 50% → 80% → 25% → 50%. The thumb and confirmed fill are captured from the app. |
+| `calibration-v2.gif` | All seven wizard pages, from introduction through five-point review. Values are illustrative, not measured calibration results. |
+| `settings-v2.png` | Current English settings, including the saved-calibration switch. |
+| `themes-v2.png` | Current dark and light native panels. |
+| `wheel-still.png`, `brightness-still.png`, `calibration-still.png` | Static alternatives selected by the README when the browser requests reduced motion. |
 
-The original window captures are placed on a consistent presentation background.
-The application interface is not redrawn or generated. GIFs use a shared 256-color
-palette to avoid palette flicker; each is smaller than 1.5 MB. The README supplies
-static alternatives when the viewer requests reduced motion.
+The capture-only inspection build keeps the popup visible when it loses focus. Its rendering and brightness logic are the production implementation. Screenshots exclude other desktop content. Calibration captures include only the wizard; the actual full-height comparison strips appear on the demo display edges outside that window.
+
+Presentation backgrounds, captions, shadows, and layout are added around the native captures. Controls and reported brightness are not redrawn or generated. Long idle gaps are shortened; actual transitions are retained. GIFs loop and use fixed palettes; the two motion recordings also omit unchanged pixels for compact files. These are interface demonstrations, not measurements of device latency, backlight luminance, or power use.
+
+## Earlier captures
+
+The older `tray-scroll.gif`, `synchronization.gif`, `calibration-walkthrough.gif`, `themes.png`, `languages.png`, `calibration.png`, and their stills are retained as historical material. They show earlier interfaces and are not used for the current README gallery.
+
+The historical tray-scroll recording used the installed application and real monitors. Its animated mouse and direction labels were editorial annotations, rather than captured wheel events.
