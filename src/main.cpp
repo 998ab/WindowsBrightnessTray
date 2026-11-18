@@ -53,6 +53,7 @@ std::vector<Monitor> monitors;
 std::map<std::wstring,unsigned long long> latestWrites;
 unsigned long long scanTag{};
 bool scanning=true, syncing=false, demo=false, tracing=false, inspection=false;
+bool brightnessWriteFailed=false;
 bool settingsPage=false;
 Preferences preferences;
 int scrollOffset=0,settingsOffset=0;
@@ -270,6 +271,7 @@ void Scan() {
 }
 void Apply(size_t source) {
     if(scanning || calibration.Handle() || source>=monitors.size()) return;
+    brightnessWriteFailed=false;
     activeMonitor=source;
     int value=static_cast<int>(SendDlgItemMessageW(list,SliderBase+static_cast<int>(source),TBM_GETPOS,0,0));
     auto previous=requestedLevels.find(monitors[source].key);
@@ -421,8 +423,8 @@ void HandleEvents() {
             if(matching){latestWrites.erase(pending);requestedLevels.erase(event.key);if(!event.ok&&it!=monitors.end()){auto index=static_cast<size_t>(it-monitors.begin());SendDlgItemMessageW(list,SliderBase+static_cast<int>(index),TBM_SETPOS,TRUE,LogicalPercent(*it));if(syncing)SendMessageW(Control(SharedSlider),TBM_SETPOS,TRUE,LogicalPercent(*it));}}
             if(!calibration.Handle()&&!scanning) {
                 if(matching) {
-                    if(!event.ok)Status(tr(L"The monitor did not respond. Try again or refresh the list."));
-                    else if(latestWrites.empty())Status(tr(L"Brightness applied."));
+                    if(!event.ok){brightnessWriteFailed=true;Status(tr(L"The monitor did not respond. Try again or refresh the list."));}
+                    else if(latestWrites.empty()&&!brightnessWriteFailed)Status(tr(L"Brightness applied."));
                 }
                 if(event.operation==Operation::Write && !event.ok && !tracked)
                     Status(tr(L"The monitor did not respond. Refresh and check its level."));
@@ -432,6 +434,9 @@ void HandleEvents() {
                     InvalidateRect(list,nullptr,FALSE);
                     TrayIcon(NIM_MODIFY);
                 }
+                auto first=FirstSupported();
+                if(syncing&&first<monitors.size()&&!latestWrites.count(monitors[first].key))
+                    SendMessageW(Control(SharedSlider),TBM_SETPOS,TRUE,SendDlgItemMessageW(list,SliderBase+static_cast<int>(first),TBM_GETPOS,0,0));
             }
         }
     }
@@ -555,6 +560,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
         if(id>=ResetBase&&id<ResetBase+1000&&!scanning) {
             size_t index=static_cast<size_t>(id-ResetBase);
             if(index<monitors.size()&&Save(monitors[index],{})) {
+                // The worker still owns a transition in the old curve. Preserve
+                // its hardware destination while displaying the new logical target.
+                auto pending=requestedLevels.find(monitors[index].key);
+                if(pending!=requestedLevels.end()){
+                    const auto& m=monitors[index];
+                    pending->second=FromRaw(ToRaw(ToHardwarePercent(pending->second,m.calibration),m.minimum,m.maximum),m.minimum,m.maximum);
+                }
                 monitors[index].calibration={};RebuildRows();Status(tr(L"Calibration reset. Monitor brightness was not changed."));
             }
         }

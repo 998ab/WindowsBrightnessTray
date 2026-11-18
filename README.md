@@ -2,7 +2,7 @@
 
 Control external monitor brightness from the Windows tray. Native C++/Win32 app using DDC/CI.
 
-[Download](https://github.com/998ab/WindowsBrightnessTray/releases/latest) · [Release notes](docs/releases/v0.2.0.md) · [Build and packaging](docs/development.md)
+[Download](https://github.com/998ab/WindowsBrightnessTray/releases/latest) · [Release notes](docs/releases/v0.2.1.md) · [Build and packaging](docs/development.md)
 
 ![BrightnessTray: linked monitors and one shared brightness slider.](docs/media/interface.png)
 

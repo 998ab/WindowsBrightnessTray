@@ -12,11 +12,18 @@
 
 namespace {
 bool Read(Monitor& m) {
-    if (!m.lowLevel && GetMonitorBrightness(m.handle, &m.minimum, &m.current, &m.maximum))
-        return m.maximum > m.minimum && m.current >= m.minimum && m.current <= m.maximum;
-    m.lowLevel = true; m.minimum = 0;
-    return GetVCPFeatureAndVCPFeatureReply(m.handle, 0x10, nullptr, &m.current, &m.maximum)
-        && m.maximum > 0 && m.current <= m.maximum;
+    DWORD minimum=0,current=0,maximum=0;
+    if (!m.lowLevel && GetMonitorBrightness(m.handle, &minimum, &current, &maximum)
+        && maximum>minimum && current>=minimum && current<=maximum){
+        m.minimum=minimum;m.current=current;m.maximum=maximum;return true;
+    }
+    // Drivers may change output arguments even when the call fails. Commit
+    // the range and backend only after a complete, valid reply.
+    if(GetVCPFeatureAndVCPFeatureReply(m.handle,0x10,nullptr,&current,&maximum)
+        && maximum>0 && current<=maximum){
+        m.minimum=0;m.current=current;m.maximum=maximum;m.lowLevel=true;return true;
+    }
+    return false;
 }
 struct Enumeration { std::vector<Monitor>& monitors; const display_names::Names& names; };
 BOOL CALLBACK Enumerate(HMONITOR display, HDC, LPRECT, LPARAM data) {

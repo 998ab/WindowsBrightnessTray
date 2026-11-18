@@ -28,6 +28,10 @@ try {
     if ($LASTEXITCODE) { throw 'Worker test build failed' }
     & ".\$OutputDirectory\worker_tests.exe"
     if ($LASTEXITCODE) { throw 'Worker tests failed' }
+    & cl.exe /nologo /std:c++17 /O2 /MT /W4 /EHsc /utf-8 /DUNICODE /D_UNICODE /DWIN32_LEAN_AND_MEAN /DNOMINMAX tests/monitor_read_tests.cpp src/display_names.cpp "/Fo:$OutputDirectory/" "/Fe:$OutputDirectory/monitor_read_tests.exe" /link user32.lib gdi32.lib dxva2.lib
+    if ($LASTEXITCODE) { throw 'Monitor read test build failed' }
+    & ".\$OutputDirectory\monitor_read_tests.exe"
+    if ($LASTEXITCODE) { throw 'Monitor read tests failed' }
     & cl.exe /nologo /std:c++17 /O2 /MT /W4 /EHsc /utf-8 /DUNICODE /D_UNICODE /DWIN32_LEAN_AND_MEAN /DNOMINMAX tests/tray_tests.cpp src/tray.cpp src/ui.cpp "/Fo:$OutputDirectory/" "/Fe:$OutputDirectory/tray_tests.exe" /link user32.lib gdi32.lib shell32.lib comctl32.lib dwmapi.lib uxtheme.lib advapi32.lib
     if ($LASTEXITCODE) { throw 'Tray test build failed' }
     & ".\$OutputDirectory\tray_tests.exe"

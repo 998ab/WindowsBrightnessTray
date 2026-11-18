@@ -16,6 +16,11 @@ void SmallSettings(){
     SetPage(true);layoutBusy=true;SetWindowPos(window,nullptr,100,100,surface.S(352),surface.S(312),SWP_NOZORDER|SWP_NOACTIVATE);layoutBusy=false;
     ui::Place(settingsPane,surface,0,64,352,248);settingsOffset=0;LayoutSettings();
 }
+void WaitUi(const std::function<bool()>& ready){
+    auto deadline=GetTickCount64()+5000;
+    do{HandleEvents();if(ready())return;Sleep(5);}while(GetTickCount64()<deadline);
+    throw std::runtime_error("backend did not settle in UI regression");
+}
 int main(){int result=0;try{
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);INITCOMMONCONTROLSEX common{sizeof(common),ICC_BAR_CLASSES};InitCommonControlsEx(&common);ui::themeOverride=1;ui::RefreshTheme();i18n::Initialize(L"ru");
     HINSTANCE instance=GetModuleHandleW(nullptr);WNDCLASSW wc{};wc.hInstance=instance;wc.hCursor=LoadCursorW(nullptr,IDC_ARROW);wc.lpfnWndProc=WindowProc;wc.lpszClassName=L"BrightnessTray.Native";RegisterClassW(&wc);wc.lpfnWndProc=SettingsProc;wc.lpszClassName=L"BrightnessTray.Settings";RegisterClassW(&wc);wc.lpfnWndProc=ListProc;wc.lpszClassName=L"BrightnessTray.List";RegisterClassW(&wc);
@@ -39,5 +44,32 @@ int main(){int result=0;try{
     SendMessageW(window,WM_DRAWITEM,LanguageSelect,reinterpret_cast<LPARAM>(&item));int x=surface.S(12),y=r.bottom-surface.S(3);COLORREF before=GetPixel(buffer,x,y);item.itemState=ODS_FOCUS;SendMessageW(window,WM_DRAWITEM,LanguageSelect,reinterpret_cast<LPARAM>(&item));CheckUi(before!=GetPixel(buffer,x,y)&&GetPixel(buffer,x,y)==ui::colors.accent,"language keyboard focus has visible underline pixels");
     SendMessageW(window,WM_CHANGEUISTATE,MAKEWPARAM(UIS_SET,UISF_HIDEFOCUS),0);SendMessageW(window,WM_DRAWITEM,LanguageSelect,reinterpret_cast<LPARAM>(&item));CheckUi(GetPixel(buffer,x,y)==before,"mouse focus does not force keyboard underline");SelectObject(buffer,old);DeleteObject(bitmap);DeleteDC(buffer);ReleaseDC(language,dc);
     layoutBusy=true;SetWindowPos(window,nullptr,100,100,surface.S(352),surface.S(444),SWP_NOZORDER|SWP_NOACTIVATE);layoutBusy=false;ui::Place(settingsPane,surface,0,64,352,380);LayoutSettings();CheckUi(settingsOffset==0&&Within(Control(Refresh)),"expanded settings restores full content without scroll");
+    // A real demo lane succeeds while a disconnected lane fails in the same batch.
+    // Failure must survive regardless of which monitor is reported last.
+    worker.SetTransitionDuration(0);worker.Start(nullptr,0,true);Scan();WaitUi([]{return !scanning;});
+    monitors[0].key=L"Disconnected";syncing=true;RebuildRows();SetPage(false);
+    SendDlgItemMessageW(list,SliderBase,TBM_SETPOS,TRUE,30);Apply(0);
+    WaitUi([]{return latestWrites.empty();});
+    CheckUi(StatusIsError(),"partial linked write failure survives a later success");
+    monitors[0].key=L"Demo_0";
+    monitors[1].key=L"Disconnected";RebuildRows();
+    SendDlgItemMessageW(list,SliderBase,TBM_SETPOS,TRUE,35);Apply(0);WaitUi([]{return latestWrites.empty();});
+    CheckUi(StatusIsError(),"partial linked failure is reported in the reverse completion order");
+    monitors[1].key=L"Demo_1";RebuildRows();
+    SendDlgItemMessageW(list,SliderBase,TBM_SETPOS,TRUE,45);Apply(0);WaitUi([]{return latestWrites.empty();});
+    CheckUi(!StatusIsError()&&monitors[0].current==45&&monitors[1].current==45,"successful linked retry clears the prior operation failure");
+    worker.Queue({Operation::Write,L"Demo_0",22,NextTag()});
+    WaitUi([]{return monitors[0].current==22;});
+    CheckUi(SendMessageW(Control(SharedSlider),TBM_GETPOS,0,0)==22,"shared target follows an untracked calibration restoration");
+    wchar_t executable[MAX_PATH]{};GetModuleFileNameW(nullptr,executable,MAX_PATH);settings=executable;
+    settings=settings.substr(0,settings.find_last_of(L"\\/"))+L"\\reset-regression-"+std::to_wstring(GetCurrentProcessId())+L".ini";
+    syncing=false;worker.SetTransitionDuration(600);monitors[0].calibration={0,20,60,10,40};RebuildRows();
+    SendDlgItemMessageW(list,SliderBase,TBM_SETPOS,TRUE,75);Apply(0);
+    SendMessageW(window,WM_COMMAND,ResetBase,0);
+    CheckUi(SendDlgItemMessageW(list,SliderBase,TBM_GETPOS,0,0)==40,"reset translates a pending target into the new calibration");
+    WaitUi([]{return latestWrites.empty();});
+    CheckUi(monitors[0].current==40&&SendDlgItemMessageW(list,SliderBase,TBM_GETPOS,0,0)==40,"reset preserves the hardware destination and finishes with a matching thumb");
 }catch(const std::exception& error){std::cerr<<"FAIL: "<<error.what()<<std::endl;result=1;}
+worker.Stop();
+if(!settings.empty())DeleteFileW(settings.c_str());
 if(window)DestroyWindow(window);popupPaintBuffer.Clear();listPaintBuffer.Clear();settingsPaintBuffer.Clear();surface.Clear();if(ui::backgroundBrush)DeleteObject(ui::backgroundBrush);if(ui::cardBrush)DeleteObject(ui::cardBrush);return result;}
