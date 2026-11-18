@@ -113,3 +113,8 @@ Choose a shared level	Choose a shared level
 Apply saved calibration: on	Apply saved calibration: on
 Apply saved calibration: off	Apply saved calibration: off
 Calibration paused	Calibration paused
+No intermediate steps.	No intermediate steps.
+Fast response to brightness changes.	Fast response to brightness changes.
+Smaller steps for a gentler transition.	Smaller steps for a gentler transition.
+Esc cancels and restores original brightness.	Esc cancels and restores original brightness.
+Enable DDC/CI, then refresh in Settings.	Enable DDC/CI, then refresh in Settings.

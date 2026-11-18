@@ -38,6 +38,19 @@ RECT PatternBounds(const RECT& bounds,calibration_layout::Edge edge,int scale) {
     if(edge==Edge::Top)r.bottom=r.top+height;if(edge==Edge::Bottom)r.top=r.bottom-height;
     return r;
 }
+RECT WizardWorkArea(HWND window,const std::vector<Monitor>& monitors,size_t reference,int scale){
+    MONITORINFO info{sizeof(info)};GetMonitorInfoW(MonitorFromWindow(window,MONITOR_DEFAULTTONEAREST),&info);
+    RECT work=info.rcWork;
+    for(const auto& p:PatternLayout(monitors,reference))if(EqualRect(&monitors[p.monitor].bounds,&info.rcMonitor)){
+        auto strip=PatternBounds(monitors[p.monitor].bounds,p.edge,scale);
+        using calibration_layout::Edge;
+        if(p.edge==Edge::Left)work.left=std::max(work.left,strip.right);
+        if(p.edge==Edge::Right)work.right=std::min(work.right,strip.left);
+        if(p.edge==Edge::Top)work.top=std::max(work.top,strip.bottom);
+        if(p.edge==Edge::Bottom)work.bottom=std::min(work.bottom,strip.top);
+    }
+    return work;
+}
 }
 void CalibrationWindow::Open(HWND owner,const std::vector<Monitor>& monitors,size_t reference,MonitorWorker& worker,
     std::function<bool(const std::vector<Calibration>&)> save) {
@@ -62,6 +75,7 @@ void CalibrationWindow::Open(HWND owner,const std::vector<Monitor>& monitors,siz
         WS_CHILD|WS_VISIBLE|WS_VSCROLL|WS_CLIPCHILDREN,0,0,1,1,window_,nullptr,wc.hInstance,this);
     for(size_t i=0;i<monitors_.size();++i) {
         auto slider=ui::Control(rows_,surface_,TRACKBAR_CLASSW,tr(L"Brightness: ")+monitors_[i].name,TBS_NOTICKS|WS_TABSTOP,SliderBase+static_cast<int>(i),false);
+        SetWindowSubclass(slider,RevealRow,91,reinterpret_cast<DWORD_PTR>(this));
         SendMessageW(slider,TBM_SETRANGE,TRUE,MAKELPARAM(0,100));SendMessageW(slider,TBM_SETPOS,TRUE,values_[i]);
     }
     ui::Button(window_,surface_,tr(L"Cancel"),CancelButton);
@@ -79,8 +93,8 @@ void CalibrationWindow::Open(HWND owner,const std::vector<Monitor>& monitors,siz
         if(p.edge==Edge::Top)info.rcWork.top=std::max(info.rcWork.top,strip.bottom);
         if(p.edge==Edge::Bottom)info.rcWork.bottom=std::min(info.rcWork.bottom,strip.top);
     }
-    int width=std::min(surface_.S(440),static_cast<int>(info.rcWork.right-info.rcWork.left)-surface_.S(24));
-    int height=std::min(surface_.S(640),static_cast<int>(info.rcWork.bottom-info.rcWork.top)-surface_.S(24));
+    int width=std::min(surface_.S(420),static_cast<int>(info.rcWork.right-info.rcWork.left)-surface_.S(24));
+    int height=std::min(surface_.S(520),static_cast<int>(info.rcWork.bottom-info.rcWork.top)-surface_.S(24));
     SetWindowPos(window_,nullptr,info.rcWork.left+surface_.S(12),info.rcWork.top+surface_.S(12),width,height,SWP_NOZORDER|SWP_SHOWWINDOW);
     EnableWindow(owner_,FALSE);Layout();ReadOriginals();SetForegroundWindow(window_);
 }
@@ -107,6 +121,16 @@ LRESULT CALLBACK CalibrationWindow::RowsProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM
         self->LayoutRows();return 0;
     }
     }return DefWindowProcW(hwnd,msg,wp,lp);
+}
+LRESULT CALLBACK CalibrationWindow::RevealRow(HWND child,UINT message,WPARAM wp,LPARAM lp,UINT_PTR,DWORD_PTR data){
+    auto self=reinterpret_cast<CalibrationWindow*>(data);
+    if(message==WM_SETFOCUS){
+        RECT r,view;GetWindowRect(child,&r);MapWindowPoints(nullptr,self->rows_,reinterpret_cast<POINT*>(&r),2);GetClientRect(self->rows_,&view);
+        int delta=r.top<self->surface_.S(4)?r.top-self->surface_.S(4):r.bottom>view.bottom-self->surface_.S(4)?r.bottom-view.bottom+self->surface_.S(4):0;
+        if(delta){self->scroll_+=MulDiv(delta,96,static_cast<int>(self->surface_.dpi));self->LayoutRows();}
+    }
+    if(message==WM_NCDESTROY)RemoveWindowSubclass(child,RevealRow,91);
+    return DefSubclassProc(child,message,wp,lp);
 }
 void CalibrationWindow::ReadOriginals() {
     std::vector<Command> commands;message_=tr(L"Reading original brightness from all displays…");
@@ -187,6 +211,7 @@ void CalibrationWindow::Update() {
     }
     InvalidateRect(window_,nullptr,FALSE);InvalidateRect(rows_,nullptr,FALSE);
     for(auto& pattern:patterns_)InvalidateRect(pattern->window,nullptr,FALSE);
+    Layout();
     // Disabling the clicked Next/Limit button while waiting for DDC/CI can
     // otherwise leave this thread with no keyboard focus (including Escape).
     if(GetActiveWindow()==window_&&!GetFocus())SetFocus(GetDlgItem(window_,CancelButton));
@@ -208,50 +233,99 @@ std::vector<Monitor> CalibrationWindow::OriginalLevels() const {
     }
     return originals;
 }
-void CalibrationWindow::Layout() {
-    if(!window_||!rows_||!surface_.body)return;
+std::wstring CalibrationWindow::StepText() const {
+    return step_==0?tr(L"Click the reference name to choose another display."):step_==6?tr(L"All five points are ready.")
+        :tr(L"STEP ")+std::to_wstring(step_)+tr(L" / 5   ·   Shared level ")+std::to_wstring(anchors[step_]*25)+L"%";
+}
+CalibrationWindow::LayoutInfo CalibrationWindow::MeasureLayout(int width,int height) const {
+    LayoutInfo layout;HDC dc=GetDC(window_);
+    auto dip=[&](int pixels){return (pixels*96+static_cast<int>(surface_.dpi)-1)/static_cast<int>(surface_.dpi);};
+    auto textHeight=[&](const std::wstring& value,HFONT font){return dip(ui::MeasureText(dc,value,font,surface_.S(width-32)).cy);};
+    auto buttonWidth=[&](int id,int minimum){wchar_t value[256]{};GetDlgItemTextW(window_,id,value,256);return std::max(minimum,dip(ui::MeasureText(dc,value,surface_.body,10000,DT_SINGLELINE|DT_NOPREFIX).cx)+24);};
+    layout.buttonHeight=std::max(28,textHeight(L"Ag",surface_.body)+10);
+    layout.titleHeight=textHeight(tr(titles[step_]),surface_.heading);
+    layout.descriptionY=layout.titleY+layout.titleHeight+6;
+    layout.descriptionHeight=textHeight(tr(descriptions[step_]),surface_.caption);
+    layout.referenceY=layout.descriptionY+layout.descriptionHeight+8;
+    layout.progressY=layout.referenceY+layout.buttonHeight+8;
+    layout.progressHeight=textHeight(StepText(),surface_.caption);
+    layout.rowsY=layout.progressY+layout.progressHeight+8;
+    layout.statusHeight=std::max(textHeight(message_,surface_.caption),textHeight(L"Ag",surface_.caption)*2);
+    layout.hintHeight=textHeight(tr(L"Esc cancels and restores original brightness."),surface_.caption);
+    int below=10+layout.statusHeight+6+layout.hintHeight+12+layout.buttonHeight+16;
+    int wantedRows=std::min(3,static_cast<int>(monitors_.size()))*68;
+    layout.desiredHeight=layout.rowsY+wantedRows+below;
+    layout.rowsHeight=std::max(40,height-layout.rowsY-below);
+    layout.statusY=layout.rowsY+layout.rowsHeight+10;
+    layout.hintY=layout.statusY+layout.statusHeight+6;
+    layout.buttonsY=layout.hintY+layout.hintHeight+12;
+    layout.cancelWidth=buttonWidth(CancelButton,72);layout.backWidth=buttonWidth(Back,64);
+    layout.nextWidth=buttonWidth(Next,88);layout.limitWidth=buttonWidth(Limit,96);
+    ReleaseDC(window_,dc);return layout;
+}
+void CalibrationWindow::Layout(bool fit) {
+    if(!window_||!rows_||!surface_.body||layoutBusy_)return;
+    layoutBusy_=true;
     RECT r;GetClientRect(window_,&r);int w=MulDiv(r.right,96,static_cast<int>(surface_.dpi)),h=MulDiv(r.bottom,96,static_cast<int>(surface_.dpi));
-    ui::Place(GetDlgItem(window_,Reference),surface_,20,150,w-40,32);
-    ui::Place(rows_,surface_,8,228,w-16,std::max(40,h-420));
-    ui::Place(GetDlgItem(window_,CancelButton),surface_,20,h-48,90,30);
-    ui::Place(GetDlgItem(window_,Limit),surface_,20,h-84,130,28);
-    ui::Place(GetDlgItem(window_,Back),surface_,w-248,h-48,84,30);
-    ui::Place(GetDlgItem(window_,Next),surface_,w-152,h-48,132,30);
-    LayoutRows();InvalidateRect(window_,nullptr,FALSE);
+    auto layout=MeasureLayout(w,h);
+    if(fit){
+        RECT outer;GetWindowRect(window_,&outer);auto work=WizardWorkArea(window_,monitors_,reference_,surface_.S(240));
+        int width=std::min(static_cast<int>(outer.right-outer.left),static_cast<int>(work.right-work.left)-surface_.S(24));
+        int x=std::clamp(outer.left,work.left+surface_.S(12),std::max(work.left+surface_.S(12),work.right-width-surface_.S(12)));
+        if(width!=outer.right-outer.left){
+            SetWindowPos(window_,nullptr,x,outer.top,width,outer.bottom-outer.top,SWP_NOZORDER|SWP_NOACTIVATE);
+            GetClientRect(window_,&r);w=MulDiv(r.right,96,static_cast<int>(surface_.dpi));h=MulDiv(r.bottom,96,static_cast<int>(surface_.dpi));layout=MeasureLayout(w,h);
+            GetWindowRect(window_,&outer);
+        }
+        int nonclient=outer.bottom-outer.top-r.bottom;
+        int height=std::min(surface_.S(layout.desiredHeight)+nonclient,static_cast<int>(work.bottom-work.top)-surface_.S(24));
+        int y=std::clamp(outer.top,work.top+surface_.S(12),std::max(work.top+surface_.S(12),work.bottom-height-surface_.S(12)));
+        SetWindowPos(window_,nullptr,x,y,width,height,SWP_NOZORDER|SWP_NOACTIVATE);
+        GetClientRect(window_,&r);h=MulDiv(r.bottom,96,static_cast<int>(surface_.dpi));layout=MeasureLayout(w,h);
+    }
+    bool limit=step_==1||step_==2;
+    ui::Place(GetDlgItem(window_,Reference),surface_,16,layout.referenceY,w-32-(limit?layout.limitWidth+8:0),layout.buttonHeight);
+    ui::Place(GetDlgItem(window_,Limit),surface_,w-16-layout.limitWidth,layout.referenceY,layout.limitWidth,layout.buttonHeight);
+    ui::Place(rows_,surface_,4,layout.rowsY,w-8,layout.rowsHeight);
+    ui::Place(GetDlgItem(window_,CancelButton),surface_,16,layout.buttonsY,layout.cancelWidth,layout.buttonHeight);
+    ui::Place(GetDlgItem(window_,Back),surface_,w-24-layout.nextWidth-layout.backWidth,layout.buttonsY,layout.backWidth,layout.buttonHeight);
+    ui::Place(GetDlgItem(window_,Next),surface_,w-16-layout.nextWidth,layout.buttonsY,layout.nextWidth,layout.buttonHeight);
+    LayoutRows();InvalidateRect(window_,nullptr,FALSE);layoutBusy_=false;
 }
 void CalibrationWindow::LayoutRows() {
     if(!rows_||!surface_.body)return;RECT r;GetClientRect(rows_,&r);
-    int w=MulDiv(r.right,96,static_cast<int>(surface_.dpi)),h=MulDiv(r.bottom,96,static_cast<int>(surface_.dpi)),total=static_cast<int>(monitors_.size())*86;
+    int w=MulDiv(r.right,96,static_cast<int>(surface_.dpi)),h=MulDiv(r.bottom,96,static_cast<int>(surface_.dpi)),total=static_cast<int>(monitors_.size())*68;
     scroll_=std::clamp(scroll_,0,std::max(0,total-h));
     SCROLLINFO si{sizeof(si),SIF_RANGE|SIF_PAGE|SIF_POS,0,std::max(0,total-1),static_cast<UINT>(h),scroll_,0};SetScrollInfo(rows_,SB_VERT,&si,TRUE);
-    for(size_t i=0;i<monitors_.size();++i)ui::Place(GetDlgItem(rows_,SliderBase+static_cast<int>(i)),surface_,16,static_cast<int>(i)*86-scroll_+36,w-32,32);
+    for(size_t i=0;i<monitors_.size();++i)ui::Place(GetDlgItem(rows_,SliderBase+static_cast<int>(i)),surface_,12,static_cast<int>(i)*68-scroll_+32,w-24,28);
     InvalidateRect(rows_,nullptr,FALSE);
 }
 void CalibrationWindow::Paint(HDC dc) {
     RECT r;GetClientRect(window_,&r);ui::Fill(dc,r,ui::colors.background);
     int w=MulDiv(r.right,96,static_cast<int>(surface_.dpi)),h=MulDiv(r.bottom,96,static_cast<int>(surface_.dpi));
+    auto layout=MeasureLayout(w,h);
     auto box=[&](int x,int y,int width,int height){return RECT{surface_.S(x),surface_.S(y),surface_.S(x+width),surface_.S(y+height)};};
-    ui::Text(dc,tr(L"MATCH DISPLAYS  /  ")+std::to_wstring(monitors_.size()),box(20,12,w-40,20),surface_.caption,ui::colors.muted);
-    ui::Text(dc,tr(titles[step_]),box(20,40,w-40,44),surface_.heading,ui::colors.text);
-    ui::Text(dc,tr(descriptions[step_]),box(20,86,w-40,58),surface_.caption,ui::colors.muted);
-    ui::Text(dc,step_==0?tr(L"Click the reference name to choose another display."):step_==6?tr(L"All five points are ready."):tr(L"STEP ")+std::to_wstring(step_)+tr(L" / 5   ·   Shared level ")+std::to_wstring(anchors[step_]*25)+L"%",box(20,194,w-40,30),surface_.caption,ui::colors.accent);
-    ui::Text(dc,message_,box(20,h-184,w-40,48),surface_.caption,ui::colors.muted);
-    ui::Text(dc,tr(L"Compare the light samples, not the percentages. Esc restores the original brightness."),box(20,h-126,w-40,36),surface_.caption,ui::colors.muted);
+    ui::Text(dc,tr(L"MATCH DISPLAYS  /  ")+std::to_wstring(monitors_.size()),box(16,10,w-32,18),surface_.caption,ui::colors.muted);
+    ui::Text(dc,tr(titles[step_]),box(16,layout.titleY,w-32,layout.titleHeight),surface_.heading,ui::colors.text);
+    ui::Text(dc,tr(descriptions[step_]),box(16,layout.descriptionY,w-32,layout.descriptionHeight),surface_.caption,ui::colors.muted);
+    ui::Text(dc,StepText(),box(16,layout.progressY,w-32,layout.progressHeight),surface_.caption,ui::colors.accent);
+    ui::Text(dc,message_,box(16,layout.statusY,w-32,layout.statusHeight),surface_.caption,ui::colors.muted);
+    ui::Text(dc,tr(L"Esc cancels and restores original brightness."),box(16,layout.hintY,w-32,layout.hintHeight),surface_.caption,ui::colors.muted);
 }
 void CalibrationWindow::PaintRows(HDC dc) {
     RECT r;GetClientRect(rows_,&r);ui::Fill(dc,r,ui::colors.background);int w=MulDiv(r.right,96,static_cast<int>(surface_.dpi));
     auto box=[&](int x,int y,int width,int height){return RECT{surface_.S(x),surface_.S(y),surface_.S(x+width),surface_.S(y+height)};};
     for(size_t i=0;i<monitors_.size();++i) {
-        int y=static_cast<int>(i)*86-scroll_;
-        ui::Fill(dc,box(16,y+82,w-32,1),failed_[i]?ui::colors.accent:ui::colors.border);
+        int y=static_cast<int>(i)*68-scroll_;
+        ui::Fill(dc,box(12,y+66,w-24,1),failed_[i]?ui::colors.accent:ui::colors.border);
         std::wstring name=monitors_[i].name+(i==reference_?tr(L"  ·  Reference"):L"");
-        ui::Text(dc,name,box(16,y+9,w-110,22),surface_.body,ui::colors.text,DT_SINGLELINE|DT_END_ELLIPSIS);
+        ui::Text(dc,name,box(12,y+5,w-106,22),surface_.body,ui::colors.text,DT_SINGLELINE|DT_VCENTER|DT_END_ELLIPSIS);
         if(step_==6) {
             auto n=nodes_[i];std::wstring points;
             for(int p:n){if(!points.empty())points+=L" / ";points+=std::to_wstring(p);}
-            ui::Text(dc,points+L"%",box(16,y+42,w-32,24),surface_.heading,ui::colors.accent);
+            ui::Text(dc,points+L"%",box(12,y+32,w-24,26),surface_.heading,ui::colors.accent);
         }else {
-            ui::Text(dc,std::to_wstring(values_[i])+L"%",box(w-86,y+9,65,24),surface_.heading,ui::colors.text,DT_RIGHT|DT_SINGLELINE);
+            ui::Text(dc,std::to_wstring(values_[i])+L"%",box(w-82,y+5,65,24),surface_.heading,ui::colors.text,DT_RIGHT|DT_VCENTER|DT_SINGLELINE);
         }
     }
 }
@@ -338,10 +412,20 @@ LRESULT CalibrationWindow::Message(UINT msg,WPARAM wp,LPARAM lp) {
     case WM_DRAWITEM:if(ui::DrawButton(*reinterpret_cast<DRAWITEMSTRUCT*>(lp),surface_))return TRUE;break;
     case WM_ERASEBKGND:return 1;
     case WM_PAINT:Buffer(window_,[&](HDC dc){if(surface_.body)Paint(dc);});return 0;
-    case WM_SIZE:Layout();return 0;
-    case WM_GETMINMAXINFO:reinterpret_cast<MINMAXINFO*>(lp)->ptMinTrackSize={surface_.S(420),surface_.S(600)};return 0;
+    case WM_SIZE:Layout(false);return 0;
+    case WM_GETMINMAXINFO:{
+        int height=360;
+        if(surface_.body&&rows_){
+            RECT r,outer;GetClientRect(window_,&r);GetWindowRect(window_,&outer);
+            int width=MulDiv(r.right,96,static_cast<int>(surface_.dpi));auto layout=MeasureLayout(width,0);
+            int rows=std::min(3,static_cast<int>(monitors_.size()))*68;
+            height=layout.desiredHeight-rows+40;
+            reinterpret_cast<MINMAXINFO*>(lp)->ptMinTrackSize={surface_.S(360),surface_.S(height)+outer.bottom-outer.top-r.bottom};
+        }else reinterpret_cast<MINMAXINFO*>(lp)->ptMinTrackSize={surface_.S(360),surface_.S(height)};
+        return 0;
+    }
     case WM_DPICHANGED:{
-        surface_.Init(window_);for(int id:{Back,Next,CancelButton,Limit,Reference})SendDlgItemMessageW(window_,id,WM_SETFONT,reinterpret_cast<WPARAM>(surface_.body),TRUE);
+        surface_.Init(window_,HIWORD(wp));for(int id:{Back,Next,CancelButton,Limit,Reference})SendDlgItemMessageW(window_,id,WM_SETFONT,reinterpret_cast<WPARAM>(surface_.body),TRUE);
         for(size_t i=0;i<monitors_.size();++i)SendDlgItemMessageW(rows_,SliderBase+static_cast<int>(i),WM_SETFONT,reinterpret_cast<WPARAM>(surface_.body),TRUE);
         RECT r=*reinterpret_cast<RECT*>(lp);SetWindowPos(window_,nullptr,r.left,r.top,r.right-r.left,r.bottom-r.top,SWP_NOZORDER);Layout();return 0;
     }

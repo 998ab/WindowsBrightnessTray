@@ -1,6 +1,6 @@
 # README media
 
-## Current gallery · v0.2.2
+## Current gallery · v0.2.4
 
 The main README uses fresh captures of BrightnessTray's native Win32 interface in demo mode. Virtual monitors are used throughout; no physical monitor brightness was changed for these recordings.
 
@@ -14,7 +14,7 @@ The main README uses fresh captures of BrightnessTray's native Win32 interface i
 | `themes-v2.png` | Current dark and light native panels. |
 | `wheel-still.png`, `brightness-still.png`, `calibration-still.png` | Static alternatives selected by the README when the browser requests reduced motion. |
 
-The capture-only inspection build keeps the popup visible when it loses focus. Its rendering and brightness logic are the production implementation. Screenshots exclude other desktop content. Calibration captures include only the wizard; the actual full-height comparison strips appear on the demo display edges outside that window.
+A native capture harness hosts the production windows, rendering, event handlers, and demo monitor worker in an isolated process. Screenshots exclude other desktop content. Calibration captures include only the wizard; the actual full-height comparison strips appear on the demo display edges outside that window.
 
 Presentation backgrounds, captions, shadows, and layout are added around the native captures. Controls and reported brightness are not redrawn or generated. Long idle gaps are shortened; actual transitions are retained. GIFs loop and use fixed palettes; the two motion recordings also omit unchanged pixels for compact files. These are interface demonstrations, not measurements of device latency, backlight luminance, or power use.
 

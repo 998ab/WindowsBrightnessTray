@@ -13,7 +13,7 @@ void RefreshTheme();
 struct Surface {
     UINT dpi = 96;
     HFONT body{}, caption{}, title{}, heading{}, number{}, symbol{};
-    void Init(HWND window);
+    void Init(HWND window,UINT dpiOverride=0);
     void Clear();
     int S(int value) const { return MulDiv(value, static_cast<int>(dpi), 96); }
     ~Surface() { Clear(); }
@@ -33,6 +33,7 @@ void Frame(HWND window);
 void Fill(HDC dc, RECT rect, COLORREF color);
 void Round(HDC dc, RECT rect, COLORREF fill, COLORREF border, int radius);
 void Text(HDC dc, const std::wstring& text, RECT rect, HFONT font, COLORREF color, UINT flags = DT_LEFT | DT_TOP | DT_WORDBREAK | DT_NOPREFIX);
+SIZE MeasureText(HDC dc,const std::wstring& text,HFONT font,int width,UINT flags=DT_WORDBREAK|DT_NOPREFIX);
 HWND Control(HWND parent, Surface& surface, const wchar_t* type, const std::wstring& text, DWORD style,
     int id, bool card = false);
 void Place(HWND control, const Surface& surface, int x, int y, int width, int height);

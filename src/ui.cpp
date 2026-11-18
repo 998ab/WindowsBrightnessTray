@@ -42,8 +42,8 @@ void Surface::Clear() {
     for (HFONT f : {body, caption, title, heading, number, symbol}) if (f) DeleteObject(f);
     body = caption = title = heading = number = symbol = nullptr;
 }
-void Surface::Init(HWND window) {
-    Clear(); dpi = GetDpiForWindow(window);
+void Surface::Init(HWND window,UINT dpiOverride) {
+    Clear(); dpi = dpiOverride?dpiOverride:GetDpiForWindow(window);
     auto make = [&](int height, int weight, const wchar_t* face = L"Segoe UI") {
         return CreateFontW(-S(height), 0, 0, 0, weight, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
             OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, face);
@@ -78,6 +78,12 @@ void Round(HDC dc, RECT rect, COLORREF fill, COLORREF border, int radius) {
 void Text(HDC dc, const std::wstring& text, RECT rect, HFONT font, COLORREF color, UINT flags) {
     auto old = SelectObject(dc, font); SetBkMode(dc, TRANSPARENT); SetTextColor(dc, color);
     DrawTextW(dc, text.c_str(), static_cast<int>(text.size()), &rect, flags); SelectObject(dc, old);
+}
+SIZE MeasureText(HDC dc,const std::wstring& text,HFONT font,int width,UINT flags){
+    if(text.empty())return {0,0};
+    RECT r{0,0,std::max(1,width),0};auto old=SelectObject(dc,font);
+    DrawTextW(dc,text.c_str(),static_cast<int>(text.size()),&r,flags|DT_CALCRECT);SelectObject(dc,old);
+    return {r.right-r.left,r.bottom-r.top};
 }
 LRESULT CALLBACK Hover(HWND hwnd, UINT message, WPARAM wp, LPARAM lp, UINT_PTR, DWORD_PTR) {
     if (message == WM_MOUSEMOVE && !GetPropW(hwnd, L"Hot")) {
@@ -170,7 +176,7 @@ bool DrawButton(const DRAWITEMSTRUCT& item, const Surface& surface) {
         accent && !disabled ? colors.accent : colors.border, surface.S(8));
     wchar_t label[256]{}; GetWindowTextW(item.hwndItem, label, 256);
     Text(item.hDC, label, r, surface.body, disabled ? colors.muted : accent ? colors.onAccent : colors.text,
-        DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+        DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOPREFIX);
     if (item.itemState & ODS_FOCUS) { InflateRect(&r, -surface.S(4), -surface.S(4)); DrawFocusRect(item.hDC, &r); }
     return true;
 }

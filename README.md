@@ -4,7 +4,7 @@
 
 **External monitor brightness. Right in your Windows tray.**
 
-[**Download for Windows**](https://github.com/998ab/WindowsBrightnessTray/releases/latest) &nbsp; · &nbsp; [What's new](docs/releases/v0.2.3.md) &nbsp; · &nbsp; [Contribute](CONTRIBUTING.md)
+[**Download for Windows**](https://github.com/998ab/WindowsBrightnessTray/releases/latest) &nbsp; · &nbsp; [What's new](docs/releases/v0.2.4.md) &nbsp; · &nbsp; [Contribute](CONTRIBUTING.md)
 
 [![GitHub stars](https://img.shields.io/github/stars/998ab/WindowsBrightnessTray?style=flat-square&label=stars&color=8dccff)](https://github.com/998ab/WindowsBrightnessTray/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/998ab/WindowsBrightnessTray?style=flat-square&label=forks&color=8dccff)](https://github.com/998ab/WindowsBrightnessTray/forks)
@@ -65,7 +65,7 @@ Turn **Settings → Apply saved calibration** off to use each monitor's full har
 
 ## At home on Windows.
 
-Light and dark themes follow Windows. English and Russian are built in, with live language switching. The panel stays compact, and settings and calibration are shared between the installed and portable versions.
+Light and dark themes follow Windows. English and Russian are built in, with live language switching. The two-monitor linked panel is **320 × 250 DIPs**, and Settings fits in **320 × 348 DIPs**, with the same readable fonts. Settings and calibration are shared between the installed and portable versions.
 
 ![The current native BrightnessTray interface in dark and light themes.](docs/media/themes-v2.png)
 
@@ -117,7 +117,7 @@ Bug reports, translations, documentation improvements, and pull requests are wel
 
 The counters above show GitHub stars, forks, and release-asset downloads across all releases. Downloads count files, rather than unique users.
 
-<sub>Images and GIFs show the actual v0.2.2 native interface with virtual demo monitors. Presentation backgrounds and captions are added; UI controls are not redrawn. [Media notes and still images](docs/media/README.md).</sub>
+<sub>Images and GIFs show the actual v0.2.4 native interface with virtual demo monitors. Presentation backgrounds and captions are added; UI controls are not redrawn. [Media notes and still images](docs/media/README.md).</sub>
 
 ---
 

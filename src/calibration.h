@@ -16,6 +16,14 @@ public:
     std::vector<Monitor> OriginalLevels() const;
     HWND Handle() const { return window_; }
 private:
+    struct LayoutInfo {
+        int titleY=34,titleHeight=0,descriptionY=0,descriptionHeight=0,referenceY=0;
+        int progressY=0,progressHeight=0,rowsY=0,rowsHeight=0,statusY=0,statusHeight=0;
+        int hintY=0,hintHeight=0,buttonsY=0,buttonHeight=28,desiredHeight=0;
+        int cancelWidth=72,backWidth=64,nextWidth=88,limitWidth=96;
+    };
+    LayoutInfo MeasureLayout(int width,int height) const;
+    std::wstring StepText() const;
     struct Pattern {
         HWND window{};
         ui::Surface surface;
@@ -25,9 +33,10 @@ private:
     };
     static LRESULT CALLBACK Proc(HWND,UINT,WPARAM,LPARAM);
     static LRESULT CALLBACK RowsProc(HWND,UINT,WPARAM,LPARAM);
+    static LRESULT CALLBACK RevealRow(HWND,UINT,WPARAM,LPARAM,UINT_PTR,DWORD_PTR);
     static LRESULT CALLBACK PatternProc(HWND,UINT,WPARAM,LPARAM);
     LRESULT Message(UINT,WPARAM,LPARAM);
-    void Layout();
+    void Layout(bool fit=true);
     void LayoutRows();
     void Paint(HDC);
     void PaintRows(HDC);
@@ -50,7 +59,7 @@ private:
     std::vector<std::unique_ptr<Pattern>> patterns_;
     MonitorWorker* worker_{};
     std::function<bool(const std::vector<Calibration>&)> save_;
-    bool touched_=false;
+    bool touched_=false,layoutBusy_=false;
     size_t reference_=0;
     int step_=0,scroll_=0;
     std::wstring message_;

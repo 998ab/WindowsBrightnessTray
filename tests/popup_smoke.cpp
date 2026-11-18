@@ -55,7 +55,7 @@ int wmain(int argc,wchar_t** argv){
   Command(window,10);Check(!IsWindowVisible(slider),"unlinked hides shared slider");Capture(window,directory+L"\\native-independent.bmp");
   Command(window,21);Check(IsWindowVisible(GetDlgItem(GetDlgItem(window,42),41))!=FALSE,"settings language selector");Capture(window,directory+L"\\native-settings.bmp");Command(window,31);Command(window,32);
   Command(window,30);Sleep(500);HWND cal=FindOwnedWindow(process.dwProcessId,L"BrightnessTray.Calibration");Check(cal!=nullptr,"calibration separate window");Check(!IsWindowVisible(window),"popup hidden for calibration");
-  RECT calBounds;GetWindowRect(cal,&calBounds);Check(calBounds.right-calBounds.left==MulDiv(440,static_cast<int>(GetDpiForWindow(cal)),96),"calibration is compact at current DPI");
+  RECT calBounds;GetWindowRect(cal,&calBounds);Check(calBounds.right-calBounds.left==MulDiv(420,static_cast<int>(GetDpiForWindow(cal)),96)&&calBounds.bottom-calBounds.top<=MulDiv(560,static_cast<int>(GetDpiForWindow(cal)),96),"calibration is compact at current DPI");
   Capture(cal,directory+L"\\native-calibration.bmp");Command(cal,102);Sleep(200);Capture(cal,directory+L"\\native-calibration-step.bmp");
   SendMessageW(cal,WM_CLOSE,0,0);Sleep(500);Check(IsWindowVisible(window)!=FALSE,"cancel restores popup");
   SendMessageW(window,WM_ACTIVATE,WA_INACTIVE,0);Check(!IsWindowVisible(window),"deactivation dismisses popup");
