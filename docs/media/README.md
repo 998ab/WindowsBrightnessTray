@@ -1,19 +1,27 @@
 # README media
 
-## Current README · installed v0.2.5
+## Current README · v0.2.5
 
-The current README uses direct captures from the installed application and the real Windows notification area.
+The README uses a small placement diagram, an illustrated tray interaction, and plain native screenshots. It does not use the earlier promotional covers or feature cards.
 
 | Asset | Source |
 | --- | --- |
-| `panel-native.png` | Lossless 320 × 250 capture of the installed BrightnessTray panel at 100% display scale. The whole image is the panel. No backdrop, frame illustration, resize, or recreated controls are added. |
-| `tray-live.gif` | An 11-second crop of the real Windows notification area, recorded at 15 FPS. The user performs wheel input over the actual sun icon. Pointer, icon animation, Windows hover state, clock, and the app's native tooltip are captured directly. |
-| `tray-live-still.png` | An unmodified frame from that recording, used when reduced motion is requested. |
+| `tray-location.png` | Actual 320 × 250 native panel placed above a schematic notification area. Panel alignment follows the production bottom-taskbar placement rule: right-aligned to the icon, with a 10-DIP gap above the taskbar. |
+| `tray-wheel.gif` | Illustrated pointer over the production-rendered sun icon. Positive and negative wheel deltas are replayed through the production tray-wheel message handler. Native demo acknowledgements provide the 50% → 70% → 50% values. The final click and panel reveal are illustrated. |
+| `tray-wheel-still.png` | Static reduced-motion alternative to the tray interaction. |
+| `settings-native.png` | Unscaled native English Settings window. |
+| `calibration-native.png` | Native midpoint calibration page. |
 
-The installed executable's product version was verified as 0.2.5. These captures show the user's real monitors and current calibration, so monitor names, hardware percentages, selected brightness, Windows language, and tray appearance may differ on another computer.
+The desktop, taskbar, pointer, scroll arrows, and explanatory percentage annotation are drawn for the diagrams. They are **not recordings of the Windows shell or its low-level input hook**. The percentage label is an explanation, not an on-screen display supplied by the app. The panel and icon are rendered by the actual application code; they are not AI-generated or recreated controls.
 
-Only the application window and a small notification-area rectangle were captured for publication. The GIF is trimmed from a longer recording. It uses a fixed 256-color palette and unchanged-pixel transparency; there are no added pointers, direction arrows, percentage counters, fake taskbars, or simulated clicks. Native tooltips fade and change position as the pointer moves, as in the actual recording.
+A native capture harness hosts the production windows, rendering, event handlers, and demo monitor worker. It records native panel frames, native tray-icon frames, and acknowledged demo brightness values. The illustrated sequence runs at 15 frames per second for 7 seconds: hover, wheel up, wheel down, then a panel reveal. The GIF uses a fixed palette and transparent unchanged pixels. No physical monitor brightness is changed.
 
-## Earlier materials
+The schematic is for a visible icon on a bottom taskbar. Windows can instead place the icon in its hidden-icons menu; the real app also supports that anchor and other taskbar positions. Actual OS themes and tray contents vary.
 
-The earlier placement and wheel illustrations (`tray-location.png`, `tray-wheel.gif`, and their stills), demo captures, feature cards, and promotional covers remain as historical material. They are not used in the current README. Settings and calibration screenshots from the demo harness are also excluded from the current README.
+Calibration values are illustrative. The screenshot includes the wizard; comparison strips appear on display edges outside that window. Interface demonstrations do not measure physical luminance, device latency, or power use.
+
+## Earlier assets
+
+The previous `hero.png`, `wheel.gif`, `brightness.gif`, `calibration-v2.gif`, `settings-v2.png`, `themes-v2.png`, and accompanying stills are retained as earlier presentation material. They are not used by the current main README.
+
+The historical `tray-scroll.gif` used an older installed application and real monitors. Its animated mouse and direction labels were editorial annotations; it also shows an older icon and brightness overlay, so it is not used as an example of the current application.

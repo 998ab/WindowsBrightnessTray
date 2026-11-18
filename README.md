@@ -13,9 +13,9 @@ A small Windows tray application for adjusting external monitor brightness throu
 
 Click the sun icon in the notification area, beside the Windows clock. The panel opens next to that icon. If the icon is hidden, expand the **⌃** menu first.
 
-<img src="docs/media/panel-native.png" alt="The actual native BrightnessTray panel, captured at its original 320 × 250 pixel size." width="320">
+<img src="docs/media/tray-location.png" alt="Placement diagram: the native BrightnessTray panel opens above its sun icon near the Windows clock." width="760">
 
-<sub>Captured from the installed v0.2.5 application at 100% display scale. Original pixels; no presentation background.</sub>
+<sub>Placement illustration using the actual v0.2.5 panel. The desktop and notification area are schematic.</sub>
 
 ## Install
 
@@ -32,11 +32,11 @@ The installer runs per user without administrator rights and offers an optional 
 Scroll while the pointer is **over the tray icon**. The panel can stay closed. Scrolling up increases brightness; scrolling down decreases it.
 
 <picture>
-  <source media="(prefers-reduced-motion: reduce)" srcset="docs/media/tray-live-still.png">
-  <img src="docs/media/tray-live.gif" alt="Actual Windows notification area: the pointer is over the BrightnessTray sun icon during wheel input, with the native brightness tooltip visible." width="350">
+  <source media="(prefers-reduced-motion: reduce)" srcset="docs/media/tray-wheel-still.png">
+  <img src="docs/media/tray-wheel.gif" alt="Illustrated tray interaction: the pointer stays over the sun icon while wheel-up raises demo brightness from 50% to 70%, and wheel-down lowers it to 50%. A click then opens the native panel above the icon." width="760">
 </picture>
 
-<sub>Recorded from the Windows notification area. The icon, pointer, hover state, and tooltip are captured directly. [Media notes](docs/media/README.md).</sub>
+<sub>Illustrated tray interaction with native app frames and demo brightness. The counter is an annotation. [Media notes](docs/media/README.md).</sub>
 
 | Action | Result |
 | --- | --- |
@@ -53,6 +53,8 @@ The slider thumb sets the target. The blue line follows brightness acknowledged 
 
 Different monitors can look different at the same percentage. Open **Settings → Match displays → Configure** to match a common minimum, maximum, and three intermediate points.
 
+<img src="docs/media/calibration-native.png" alt="Native calibration wizard at the midpoint matching step, with separate monitor sliders and Back, Cancel, and Next actions." width="420">
+
 At 25%, 50%, and 75%, the reference display stays fixed while you adjust the others. Comparison strips appear at facing screen edges. **Cancel restores the original brightness.** Matching is visual, rather than a colorimeter measurement. [Calibration guide](docs/calibration.md).
 
 To use the full hardware range again, turn **Settings → Calibration** off. Turn it back on to reuse the saved curves. Switching modes preserves the current hardware brightness.
@@ -60,6 +62,8 @@ To use the full hardware range again, turn **Settings → Calibration** off. Tur
 ## Settings
 
 Choose the response speed, wheel step, calibration state, and language. Light and dark themes follow Windows. English and Russian are included.
+
+<img src="docs/media/settings-native.png" alt="Native Settings window with response and wheel-step groups, calibration switch, language menu, and refresh button." width="320">
 
 The linked two-monitor panel is 320 × 250 DIPs; Settings is 320 × 348 DIPs. Small work areas use scrolling. Both installed and portable versions use the same profile:
 
