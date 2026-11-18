@@ -113,6 +113,21 @@ void PaintTrackbar(HWND hwnd,HDC dc,const Surface& surface) {
 }
 LRESULT CALLBACK Trackbar(HWND hwnd,UINT message,WPARAM wp,LPARAM lp,UINT_PTR,DWORD_PTR data) {
     auto& surface=*reinterpret_cast<Surface*>(data);
+    if(message==WM_MOUSEWHEEL){
+        if(!IsWindowEnabled(hwnd))return 0;
+        int delta=static_cast<int>(reinterpret_cast<INT_PTR>(GetPropW(hwnd,L"WheelRemainder")))+GET_WHEEL_DELTA_WPARAM(wp);
+        int detents=delta/WHEEL_DELTA;SetPropW(hwnd,L"WheelRemainder",reinterpret_cast<HANDLE>(static_cast<INT_PTR>(delta%WHEEL_DELTA)));
+        int step=(GET_KEYSTATE_WPARAM(wp)&MK_CONTROL)?1:static_cast<int>(SendMessageW(hwnd,TBM_GETLINESIZE,0,0));
+        int before=static_cast<int>(SendMessageW(hwnd,TBM_GETPOS,0,0));
+        int low=static_cast<int>(SendMessageW(hwnd,TBM_GETRANGEMIN,0,0)),high=static_cast<int>(SendMessageW(hwnd,TBM_GETRANGEMAX,0,0));
+        int next=std::clamp(before+detents*step,low,high);
+        if(next!=before){
+            SendMessageW(hwnd,TBM_SETPOS,TRUE,next);
+            SendMessageW(GetParent(hwnd),WM_HSCROLL,MAKEWPARAM(TB_THUMBPOSITION,next),reinterpret_cast<LPARAM>(hwnd));
+            SendMessageW(GetAncestor(hwnd,GA_ROOT),WheelChanged,next>before?1:0,0);
+        }
+        return 0;
+    }
     if(message==WM_ERASEBKGND)return 1;
     if(message==WM_PAINT) {
         PAINTSTRUCT ps;HDC dc=BeginPaint(hwnd,&ps);RECT r;GetClientRect(hwnd,&r);
@@ -120,7 +135,7 @@ LRESULT CALLBACK Trackbar(HWND hwnd,UINT message,WPARAM wp,LPARAM lp,UINT_PTR,DW
         EndPaint(hwnd,&ps);return 0;
     }
     if(message==WM_PRINTCLIENT){PaintTrackbar(hwnd,reinterpret_cast<HDC>(wp),surface);return 0;}
-    if(message==WM_NCDESTROY){delete static_cast<BackBuffer*>(RemovePropW(hwnd,L"PaintBuffer"));delete static_cast<SliderProgress*>(RemovePropW(hwnd,L"ActualMotion"));RemovePropW(hwnd,L"ActualLevel");RemoveWindowSubclass(hwnd,Trackbar,2);}
+    if(message==WM_NCDESTROY){delete static_cast<BackBuffer*>(RemovePropW(hwnd,L"PaintBuffer"));delete static_cast<SliderProgress*>(RemovePropW(hwnd,L"ActualMotion"));RemovePropW(hwnd,L"ActualLevel");RemovePropW(hwnd,L"WheelRemainder");RemoveWindowSubclass(hwnd,Trackbar,2);}
     LRESULT result=DefSubclassProc(hwnd,message,wp,lp);
     switch(message){case TBM_SETPOS:case TBM_SETRANGE:case TBM_SETRANGEMIN:case TBM_SETRANGEMAX:
     case WM_MOUSEMOVE:case WM_LBUTTONDOWN:case WM_LBUTTONUP:case WM_KEYDOWN:case WM_KEYUP:

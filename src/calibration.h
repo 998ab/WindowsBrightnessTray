@@ -13,6 +13,7 @@ public:
         std::function<bool(const std::vector<Calibration>&)> save);
     void OnEvent(const Event& event);
     void Cancel();
+    std::vector<Monitor> OriginalLevels() const;
     HWND Handle() const { return window_; }
 private:
     struct Pattern {

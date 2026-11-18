@@ -2,6 +2,7 @@
 #include "transition.h"
 
 struct Preferences {
+    bool calibrationEnabled=true;
     int transitionMs=transition::DefaultMs;
     int wheelStep=2;
     int hardwareStep=2;

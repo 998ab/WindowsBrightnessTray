@@ -4,6 +4,7 @@
 #include <string>
 
 namespace ui {
+constexpr UINT WheelChanged=WM_APP+30;
 struct Palette { COLORREF background, card, text, muted, border, accent, onAccent, hover, track; };
 extern Palette colors;
 extern HBRUSH backgroundBrush, cardBrush;

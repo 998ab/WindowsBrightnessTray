@@ -2,7 +2,7 @@
 
 Control external monitor brightness from the Windows tray. Native C++/Win32 app using DDC/CI.
 
-[Download](https://github.com/998ab/WindowsBrightnessTray/releases/latest) · [Release notes](docs/releases/v0.2.1.md) · [Build and packaging](docs/development.md)
+[Download](https://github.com/998ab/WindowsBrightnessTray/releases/latest) · [Release notes](docs/releases/v0.2.2.md) · [Build and packaging](docs/development.md)
 
 ![BrightnessTray: linked monitors and one shared brightness slider.](docs/media/interface.png)
 
@@ -24,6 +24,8 @@ Exit the app before upgrading. Settings and calibration are preserved. Binaries 
 - **Settings** has language, wheel step, brightness response and display matching.
 - **Right-click the sun** for presets and **Exit**.
 
+Wheel up raises brightness and wheel down lowers it, both over the tray icon and over sliders. The sun rotates only for brightness wheel input. After system sleep or display power-off, the app restores the prior brightness with up to five attempts while monitors wake.
+
 English and Russian; Windows light/dark theme. No telemetry, network access or automatic update checks.
 
 ## Match displays
@@ -31,6 +33,8 @@ English and Russian; Windows light/dark theme. No telemetry, network access or a
 Open **Settings → Match displays → Configure**. The wizard matches minimum, maximum and 25/50/75% brightness across displays. **Cancel** restores the original levels.
 
 Matching is visual, not a colorimeter measurement. Hardware steps and slow monitor responses can remain visible. [Calibration details](docs/calibration.md).
+
+To use a monitor's full hardware brightness range, turn **Settings → Apply saved calibration** off. The curves are preserved; turn it back on to use the matched range again. Switching modes keeps the current hardware brightness; the next adjustment uses the selected scale.
 
 ## Build
 

@@ -201,6 +201,13 @@ void CalibrationWindow::Close(bool restore) {
     EnableWindow(owner_,TRUE);DestroyWindow(window_);window_=rows_=nullptr;surface_.Clear();ShowWindow(owner_,SW_SHOWNOACTIVATE);SetForegroundWindow(owner_);
 }
 void CalibrationWindow::Cancel(){if(window_)Close(true);}
+std::vector<Monitor> CalibrationWindow::OriginalLevels() const {
+    std::vector<Monitor> originals;
+    if(window_)for(size_t i=0;i<monitors_.size();++i)if(known_[i]){
+        auto m=monitors_[i];m.current=originals_[i];originals.push_back(std::move(m));
+    }
+    return originals;
+}
 void CalibrationWindow::Layout() {
     if(!window_||!rows_||!surface_.body)return;
     RECT r;GetClientRect(window_,&r);int w=MulDiv(r.right,96,static_cast<int>(surface_.dpi)),h=MulDiv(r.bottom,96,static_cast<int>(surface_.dpi));

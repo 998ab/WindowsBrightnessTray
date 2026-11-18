@@ -29,6 +29,10 @@ Wizard changes are direct parallel writes without animation or a step cap. **Nex
 
 Profiles change only on Save. Curves are written to a temporary settings file and replaced as a group. Three-point profiles remain compatible. Historical keys are preserved independently of friendly labels.
 
+**Settings → Apply saved calibration** temporarily pauses the curves without deleting them. With calibration off, 100% reaches the hardware maximum; with it on, 100% reaches the matched maximum. Switching keeps physical brightness and any in-flight hardware destination, and changes the scale used by subsequent adjustments. The mode is remembered between launches.
+
+After system sleep or display power-off, BrightnessTray remembers the pending hardware target or last confirmed brightness and restores it after re-enumeration. Up to five attempts allow DDC/CI time to become available. New brightness input cancels an older recovery. If sleep interrupts matching, recovery uses the original levels recorded before the wizard, not a temporary sample.
+
 Each display has a persistent sleeping worker. A common gate starts grouped writes; calls to one physical handle remain sequential. Pending targets coalesce without crossing read or topology barriers. Normal transitions preserve fractional position and velocity, then round at the hardware boundary.
 
 Parallel calls do not make DDC/CI atomic across displays. Drivers may serialize the bus and firmware may respond at different times. A captured two-display setup returned writes in approximately 62–125 ms. Simultaneous light changes and continuous animation are not guaranteed.

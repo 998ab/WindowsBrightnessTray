@@ -23,7 +23,7 @@
 namespace {
 constexpr UINT Result = WM_APP+1, Tray = WM_APP+2, Wheel=WM_APP+4, CheckPopupFocus=WM_APP+5, AnimationFrame=WM_APP+6, RevealFocus=WM_APP+7;
 constexpr int Sync=10, Refresh=11, Exit=12, SliderBase=1000, CalibrateBase=2000, ResetBase=3000;
-constexpr int BrightnessPage=20,SettingsPage=21,SpeedPresetBase=23,WheelPresetBase=27,MatchSettings=30,LanguageEn=31,LanguageRu=32,OptionsBase=4000, SharedSlider=40, LanguageSelect=41;
+constexpr int BrightnessPage=20,SettingsPage=21,SpeedPresetBase=23,WheelPresetBase=27,MatchSettings=30,LanguageEn=31,LanguageRu=32,OptionsBase=4000, SharedSlider=40, LanguageSelect=41,CalibrationToggle=43;
 constexpr int WheelPresets[]={1,2,5};
 const wchar_t* ResponseLabels[]={L"Instant",L"Quick",L"Smoother"};
 HWND window{}, list{},settingsPane{};
@@ -39,6 +39,7 @@ HICON trayIcon{},appIcon{};
 constexpr UINT_PTR TrayAnimationTimer=2;
 constexpr double TrayFrameCount=48; // Angular units, not cached images.
 std::map<std::wstring,int> requestedLevels;
+std::map<std::wstring,DWORD> requestedRawLevels;
 bool trayAnimating=false;
 double renderedTrayPosition=-1;
 int renderedTrayPixels=0;
@@ -54,12 +55,18 @@ std::map<std::wstring,unsigned long long> latestWrites;
 unsigned long long scanTag{};
 bool scanning=true, syncing=false, demo=false, tracing=false, inspection=false;
 bool brightnessWriteFailed=false;
+constexpr GUID DisplayPowerSetting={0x2b84c20e,0xad23,0x4ddf,{0x93,0xdb,0x05,0xff,0xbd,0x7e,0xfc,0xa5}};
+HPOWERNOTIFY displayPowerNotification{};
+bool recovering=false,displaysAsleep=false;
+unsigned recoveryAttempts=0;
+std::map<std::wstring,int> recoveryTargets;
+std::map<unsigned long long,std::wstring> recoveryWrites;
 bool settingsPage=false;
 Preferences preferences;
 int scrollOffset=0,settingsOffset=0;
 int settingsWheelRemainder=0,listWheelRemainder=0;
 void ScrollWheel(int delta,int& remainder,int& offset){remainder+=delta;int steps=remainder/WHEEL_DELTA;remainder-=steps*WHEEL_DELTA;offset-=steps*48;}
-constexpr int SettingsContentHeight=380;
+constexpr int SettingsContentHeight=420;
 void LayoutSettings();
 void LayoutRows();
 bool popupMenu=false,languageDropped=false,layoutBusy=false,dismissedOverTray=false;
@@ -92,8 +99,12 @@ void Mark(HWND button,bool selected) {
     InvalidateRect(button,nullptr,FALSE);
 }
 void UpdatePreferencesControls() {
+    SetWindowTextW(Control(CalibrationToggle),preferences.calibrationEnabled?tr(L"Apply saved calibration: on"):tr(L"Apply saved calibration: off"));
+    Mark(Control(CalibrationToggle),preferences.calibrationEnabled);
     for(int i=0;i<3;++i)Mark(Control(SpeedPresetBase+i),preferences.responseMode==i);
     for(int i=0;i<3;++i)Mark(Control(WheelPresetBase+i),preferences.wheelStep==WheelPresets[i]);
+    SendMessageW(Control(SharedSlider),TBM_SETLINESIZE,0,preferences.wheelStep);
+    for(size_t i=0;i<monitors.size();++i)SendDlgItemMessageW(list,SliderBase+static_cast<int>(i),TBM_SETLINESIZE,0,preferences.wheelStep);
     SetWindowTextW(Control(LanguageSelect),i18n::useRussian.load()?L"Русский":L"English");InvalidateRect(Control(LanguageSelect),nullptr,FALSE);
     InvalidateRect(window,nullptr,FALSE);
     InvalidateRect(settingsPane,nullptr,FALSE);
@@ -102,6 +113,7 @@ void SavePreferences() {
     preferences.Normalize();worker.SetTransitionDuration(preferences.transitionMs);
     worker.SetHardwareStep(preferences.hardwareStep);
     bool saved=WritePrivateProfileStringW(L"General",L"TransitionMs",std::to_wstring(preferences.transitionMs).c_str(),settings.c_str())!=FALSE;
+    saved=(WritePrivateProfileStringW(L"General",L"CalibrationEnabled",preferences.calibrationEnabled?L"1":L"0",settings.c_str())!=FALSE)&&saved;
     saved=(WritePrivateProfileStringW(L"General",L"ResponseMode",std::to_wstring(preferences.responseMode).c_str(),settings.c_str())!=FALSE)&&saved;
     saved=(WritePrivateProfileStringW(L"General",L"WheelStep",std::to_wstring(preferences.wheelStep).c_str(),settings.c_str())!=FALSE)&&saved;
     saved=(WritePrivateProfileStringW(L"General",L"HardwareStep",std::to_wstring(preferences.hardwareStep).c_str(),settings.c_str())!=FALSE)&&saved;
@@ -120,7 +132,7 @@ void SetPage(bool value) {
     ShowWindow(Control(SharedSlider),!value&&syncing?SW_SHOW:SW_HIDE);
     ShowWindow(Control(SettingsPage),value?SW_HIDE:SW_SHOW);
     ShowWindow(Control(BrightnessPage),value?SW_SHOW:SW_HIDE);
-    for(int id:{SpeedPresetBase,SpeedPresetBase+1,SpeedPresetBase+2,WheelPresetBase,WheelPresetBase+1,WheelPresetBase+2,MatchSettings,LanguageSelect,Refresh})ShowWindow(Control(id),value?SW_SHOW:SW_HIDE);
+    for(int id:{SpeedPresetBase,SpeedPresetBase+1,SpeedPresetBase+2,WheelPresetBase,WheelPresetBase+1,WheelPresetBase+2,MatchSettings,CalibrationToggle,LanguageSelect,Refresh})ShowWindow(Control(id),value?SW_SHOW:SW_HIDE);
     ShowWindow(Control(Exit),SW_HIDE);
     Layout();if(!value)UpdateActualLevels();
     if(GetActiveWindow()==window)SetFocus(Control(value?BrightnessPage:SettingsPage));
@@ -131,8 +143,9 @@ int Width(HWND hwnd) { RECT r; GetClientRect(hwnd,&r); return MulDiv(r.right,96,
 int Height(HWND hwnd) { RECT r; GetClientRect(hwnd,&r); return MulDiv(r.bottom,96,static_cast<int>(surface.dpi)); }
 void Status(std::wstring value) { status=std::move(value); InvalidateRect(window,nullptr,FALSE); }
 int HardwarePercent(const Monitor& m) { return FromRaw(m.current,m.minimum,m.maximum); }
-int LogicalPercent(const Monitor& m) { return ToLogicalPercent(HardwarePercent(m),m.calibration); }
-double VisualPercent(const Monitor& m){double hardware=m.maximum>m.minimum?100.0*(std::clamp(m.current,m.minimum,m.maximum)-m.minimum)/(m.maximum-m.minimum):0;return ToLogicalContinuous(hardware,m.calibration);}
+Calibration ActiveCalibration(const Monitor& m){return preferences.calibrationEnabled?m.calibration:Calibration{};}
+int LogicalPercent(const Monitor& m) { return ToLogicalPercent(HardwarePercent(m),ActiveCalibration(m)); }
+double VisualPercent(const Monitor& m){double hardware=m.maximum>m.minimum?100.0*(std::clamp(m.current,m.minimum,m.maximum)-m.minimum)/(m.maximum-m.minimum):0;return ToLogicalContinuous(hardware,ActiveCalibration(m));}
 bool Save(const Monitor& m, Calibration c) {
     if (!c.Valid()) return false;
     std::wstring section=L"Min="+std::to_wstring(c.low);
@@ -173,9 +186,11 @@ void Load(Monitor& m) {
 Command WriteCommand(const Monitor& m,int logical) {
     requestedLevels[m.key]=logical;
     auto tag=NextTag(); latestWrites[m.key]=tag;
-    DWORD raw=ToRaw(ToHardwarePercent(logical,m.calibration),m.minimum,m.maximum);
+    auto curve=ActiveCalibration(m);
+    DWORD raw=ToRaw(ToHardwarePercent(logical,curve),m.minimum,m.maximum);
+    requestedRawLevels[m.key]=raw;
     brightness_trace::Log("input",tag,logical,raw,preferences.transitionMs);
-    return {Operation::Write,m.key,raw,tag,true,logical,m.calibration};
+    return {Operation::Write,m.key,raw,tag,true,logical,curve};
 }
 LRESULT CALLBACK FocusReveal(HWND child,UINT message,WPARAM wp,LPARAM lp,UINT_PTR,DWORD_PTR){
     if(message==WM_SETFOCUS)SendMessageW(window,RevealFocus,0,reinterpret_cast<LPARAM>(child));
@@ -191,8 +206,9 @@ void LayoutSettings(){
     for(int i=0;i<3;++i)ui::Place(Control(SpeedPresetBase+i),surface,20+i*(presetWidth+6),44-settingsOffset,presetWidth,34);
     for(int i=0;i<3;++i)ui::Place(Control(WheelPresetBase+i),surface,20+i*(presetWidth+6),166-settingsOffset,presetWidth,32);
     ui::Place(Control(MatchSettings),surface,w-126,234-settingsOffset,106,32);
-    ui::Place(Control(LanguageSelect),surface,w-146,282-settingsOffset,126,32);
-    ui::Place(Control(Refresh),surface,20,328-settingsOffset,w-40,30);
+    ui::Place(Control(CalibrationToggle),surface,20,274-settingsOffset,w-40,30);
+    ui::Place(Control(LanguageSelect),surface,w-146,322-settingsOffset,126,32);
+    ui::Place(Control(Refresh),surface,20,368-settingsOffset,w-40,30);
     InvalidateRect(settingsPane,nullptr,FALSE);
 }
 void RevealControl(HWND child){
@@ -226,6 +242,7 @@ void RebuildRows() {
         HWND slider=ui::Control(list,surface,TRACKBAR_CLASSW,tr(L"Brightness: ")+monitors[i].name,TBS_NOTICKS|WS_TABSTOP,SliderBase+static_cast<int>(i),false);
         SetWindowSubclass(slider,FocusReveal,89,0);
         SendMessageW(slider,TBM_SETRANGE,TRUE,MAKELPARAM(0,100));
+        SendMessageW(slider,TBM_SETLINESIZE,0,preferences.wheelStep);
         SendMessageW(slider,TBM_SETPOS,TRUE,requestedLevels.count(monitors[i].key)?requestedLevels[monitors[i].key]:LogicalPercent(monitors[i]));
         ui::Button(list,surface,L"…",OptionsBase+static_cast<int>(i),false,true);
         SetWindowSubclass(GetDlgItem(list,OptionsBase+static_cast<int>(i)),FocusReveal,89,0);
@@ -246,7 +263,7 @@ void Layout() {
     MONITORINFO area{sizeof(area)};GetMonitorInfoW(MonitorFromWindow(window,MONITOR_DEFAULTTONEAREST),&area);
     int available=MulDiv(area.rcWork.bottom-area.rcWork.top,96,static_cast<int>(surface.dpi))-24;
     int rows=std::max(1,static_cast<int>(monitors.size()))*RowHeight();
-    int height=std::min(settingsPage?444:72+std::min(rows,336)+(syncing?106:0)+54,available);
+    int height=std::min(settingsPage?64+SettingsContentHeight:72+std::min(rows,336)+(syncing?106:0)+54,available);
     SetWindowPos(window,nullptr,0,0,surface.S(352),surface.S(height),SWP_NOMOVE|SWP_NOZORDER|SWP_NOACTIVATE);
     int w=Width(window),h=Height(window);
     ui::Place(Control(BrightnessPage),surface,16,16,32,32);
@@ -262,8 +279,34 @@ void Layout() {
     PositionPopup();
 }
 
-void Scan() {
-    calibration.Cancel(); scanning=true; scanTag=NextTag(); latestWrites.clear();requestedLevels.clear();
+void EndRecovery(){recovering=false;recoveryTargets.clear();recoveryWrites.clear();recoveryAttempts=0;}
+void RememberBrightness(){
+    if(recovering||!recoveryTargets.empty())return;
+    bool matching=calibration.Handle()!=nullptr;
+    auto originals=calibration.OriginalLevels();
+    calibration.Cancel();
+    // Cancellation writes can fail as a monitor falls asleep. Retain the
+    // wizard's original levels so resume never reapplies temporary samples.
+    for(const auto& m:monitors)if(m.supported){
+        auto original=std::find_if(originals.begin(),originals.end(),[&](const Monitor& value){return value.key==m.key;});
+        auto pending=requestedRawLevels.find(m.key);
+        recoveryTargets[m.key]=matching&&original!=originals.end()?HardwarePercent(*original)
+            :pending==requestedRawLevels.end()?HardwarePercent(m):FromRaw(pending->second,m.minimum,m.maximum);
+    }
+}
+void ScheduleRecovery(){
+    RememberBrightness();
+    if(!recovering){recovering=!recoveryTargets.empty();recoveryAttempts=0;}
+    SetTimer(window,1,1500,nullptr);
+}
+void ContinueRecovery(){
+    if(recoveryTargets.empty()){EndRecovery();return;}
+    if(recoveryAttempts>=5){EndRecovery();Status(tr(L"The monitor did not respond. Refresh and check its level."));return;}
+    SetTimer(window,1,2500,nullptr);
+}
+void Scan(bool forResume=false) {
+    if(!forResume)EndRecovery();
+    calibration.Cancel(); scanning=true; scanTag=NextTag(); latestWrites.clear();requestedLevels.clear();requestedRawLevels.clear();
     worker.Queue({Operation::Scan,L"",0,scanTag});
     EnableWindow(Control(Refresh),FALSE);
     for(HWND c=GetWindow(list,GW_CHILD);c;c=GetWindow(c,GW_HWNDNEXT)) EnableWindow(c,FALSE);
@@ -271,12 +314,10 @@ void Scan() {
 }
 void Apply(size_t source) {
     if(scanning || calibration.Handle() || source>=monitors.size()) return;
+    if(recovering||!recoveryTargets.empty()){EndRecovery();KillTimer(window,1);}
     brightnessWriteFailed=false;
     activeMonitor=source;
     int value=static_cast<int>(SendDlgItemMessageW(list,SliderBase+static_cast<int>(source),TBM_GETPOS,0,0));
-    auto previous=requestedLevels.find(monitors[source].key);
-    int prior=previous==requestedLevels.end()?LogicalPercent(monitors[source]):previous->second;
-    if(value!=prior)AnimateTray(value>prior?1:-1);
     std::vector<Command> batch;
     for(size_t i=0;i<monitors.size();++i) if(monitors[i].supported&&(syncing||i==source)) {
         if(!latestWrites.count(monitors[i].key)){
@@ -291,7 +332,7 @@ void Apply(size_t source) {
     if(syncing)SendMessageW(Control(SharedSlider),TBM_SETPOS,TRUE,value);
     UpdateActualLevels();InvalidateRect(list,nullptr,FALSE);InvalidateRect(window,nullptr,FALSE);
 }
-void TrayValue(int value,bool relative) {
+void TrayValue(int value,bool relative,bool wheel=false) {
     if(scanning||calibration.Handle())return;
     if(activeMonitor>=monitors.size()||!monitors[activeMonitor].supported) {
         auto it=std::find_if(monitors.begin(),monitors.end(),[](const Monitor& m){return m.supported;});
@@ -300,6 +341,7 @@ void TrayValue(int value,bool relative) {
     int id=SliderBase+static_cast<int>(activeMonitor);
     int current=static_cast<int>(SendDlgItemMessageW(list,id,TBM_GETPOS,0,0));
     int next=std::clamp(relative?current+value:value,0,100);
+    if(wheel&&next!=current)AnimateTray(next>current?1:-1);
     SendDlgItemMessageW(list,id,TBM_SETPOS,TRUE,next);Apply(activeMonitor);
 }
 bool SharedLevelsMatch(){int value=-1;for(size_t i=0;i<monitors.size();++i)if(monitors[i].supported){int next=static_cast<int>(SendDlgItemMessageW(list,SliderBase+static_cast<int>(i),TBM_GETPOS,0,0));if(value>=0&&value!=next)return false;value=next;}return true;}
@@ -314,7 +356,7 @@ void PaintList(HDC dc) {
         const auto& m=monitors[i];DrawMonitor(dc,16,y+14);
         ui::Text(dc,m.name,Box(54,y+10,w-150,22),surface.body,ui::colors.text,DT_SINGLELINE|DT_END_ELLIPSIS|DT_NOPREFIX);
         ui::Text(dc,m.supported?std::to_wstring(LogicalPercent(m))+L"%":L"—",Box(w-94,y+10,70,24),surface.heading,ui::colors.text,DT_RIGHT|DT_SINGLELINE);
-        ui::Text(dc,m.supported?(m.calibration.Matched()?tr(L"Matched"):tr(L"Not matched")):tr(L"DDC/CI unavailable"),Box(54,y+36,w-152,20),surface.caption,ui::colors.muted,DT_SINGLELINE|DT_END_ELLIPSIS);
+        ui::Text(dc,m.supported?(m.calibration.Matched()?(preferences.calibrationEnabled?tr(L"Matched"):tr(L"Calibration paused")):tr(L"Not matched")):tr(L"DDC/CI unavailable"),Box(54,y+36,w-152,20),surface.caption,ui::colors.muted,DT_SINGLELINE|DT_END_ELLIPSIS);
         if(m.supported)ui::Text(dc,L"DDC "+std::to_wstring(HardwarePercent(m))+L"%",Box(w-118,y+38,70,18),surface.caption,ui::colors.muted,DT_RIGHT|DT_SINGLELINE);
         ui::Fill(dc,Box(16,y+RowHeight()-1,w-32,1),ui::colors.border);
     }
@@ -332,7 +374,7 @@ void PaintSettings(HDC dc){
     ui::Text(dc,tr(L"Tray mouse wheel"),box(20,138,w-40,22),surface.body,ui::colors.text);
     ui::Text(dc,tr(L"Brightness step. Ctrl: 1%."),box(20,206,w-40,20),surface.caption,ui::colors.muted);
     ui::Text(dc,tr(L"Match displays"),box(20,240,w-152,22),surface.body,ui::colors.text);
-    ui::Text(dc,tr(L"Language"),box(20,288,w-180,24),surface.body,ui::colors.text);
+    ui::Text(dc,tr(L"Language"),box(20,328,w-180,24),surface.body,ui::colors.text);
 }
 bool StatusIsError(){return status==tr(L"Changes are active, but settings could not be saved.")||status==tr(L"The monitor did not respond. Try again or refresh the list.")||status==tr(L"The monitor did not respond. Refresh and check its level.");}
 void PaintMain(HDC dc) {
@@ -410,17 +452,33 @@ void HandleEvents() {
             scanning=false;EnableWindow(Control(Refresh),TRUE);RebuildRows();
             if(activeMonitor>=monitors.size())activeMonitor=0;TrayIcon(NIM_MODIFY);
             Status(monitors.empty() ? tr(L"Connect an external monitor and refresh the list.") : tr(L"Ready. Brightness changes only when you adjust it."));
+            if(recovering){
+                std::vector<Command> restore;
+                for(const auto& m:monitors)if(m.supported){
+                    auto saved=recoveryTargets.find(m.key);if(saved==recoveryTargets.end())continue;
+                    auto tag=NextTag();latestWrites[m.key]=tag;recoveryWrites[tag]=m.key;
+                    requestedLevels[m.key]=ToLogicalPercent(saved->second,ActiveCalibration(m));
+                    requestedRawLevels[m.key]=ToRaw(saved->second,m.minimum,m.maximum);
+                    restore.push_back({Operation::Write,m.key,ToRaw(saved->second,m.minimum,m.maximum),tag});
+                }
+                RebuildRows();worker.QueueBatch(std::move(restore));
+                if(recoveryWrites.empty())ContinueRecovery();
+            }
         } else {
             auto it=std::find_if(monitors.begin(),monitors.end(),[&](const Monitor& m){return m.key==event.key;});
-            if(event.operation==Operation::Write&&event.ok&&calibration.Handle()&&latestWrites.empty()&&it!=monitors.end()&&event.raw!=it->current)
-                AnimateTray(event.raw>it->current?1:-1);
             if(it!=monitors.end()&&event.ok) it->current=event.raw;
             UpdateActualLevels();
             if(event.operation==Operation::Write&&!event.final)continue;
+            auto restored=recoveryWrites.find(event.tag);
+            if(restored!=recoveryWrites.end()){
+                if(event.ok)recoveryTargets.erase(restored->second);
+                recoveryWrites.erase(restored);
+                if(recoveryWrites.empty())ContinueRecovery();
+            }
             auto pending=latestWrites.find(event.key);
             const bool tracked=pending!=latestWrites.end();
             const bool matching=event.operation==Operation::Write&&tracked&&pending->second==event.tag;
-            if(matching){latestWrites.erase(pending);requestedLevels.erase(event.key);if(!event.ok&&it!=monitors.end()){auto index=static_cast<size_t>(it-monitors.begin());SendDlgItemMessageW(list,SliderBase+static_cast<int>(index),TBM_SETPOS,TRUE,LogicalPercent(*it));if(syncing)SendMessageW(Control(SharedSlider),TBM_SETPOS,TRUE,LogicalPercent(*it));}}
+            if(matching){latestWrites.erase(pending);requestedLevels.erase(event.key);requestedRawLevels.erase(event.key);if(!event.ok&&it!=monitors.end()){auto index=static_cast<size_t>(it-monitors.begin());SendDlgItemMessageW(list,SliderBase+static_cast<int>(index),TBM_SETPOS,TRUE,LogicalPercent(*it));if(syncing)SendMessageW(Control(SharedSlider),TBM_SETPOS,TRUE,LogicalPercent(*it));}}
             if(!calibration.Handle()&&!scanning) {
                 if(matching) {
                     if(!event.ok){brightnessWriteFailed=true;Status(tr(L"The monitor did not respond. Try again or refresh the list."));}
@@ -524,6 +582,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
         }
         if(id>=SpeedPresetBase&&id<SpeedPresetBase+3){preferences.SetResponse(id-SpeedPresetBase);SavePreferences();return 0;}
         if(id>=WheelPresetBase&&id<WheelPresetBase+3){preferences.wheelStep=WheelPresets[id-WheelPresetBase];SavePreferences();return 0;}
+        if(id==CalibrationToggle&&!calibration.Handle()){
+            preferences.calibrationEnabled=!preferences.calibrationEnabled;
+            for(const auto& m:monitors){auto raw=requestedRawLevels.find(m.key);if(raw!=requestedRawLevels.end())requestedLevels[m.key]=ToLogicalPercent(FromRaw(raw->second,m.minimum,m.maximum),ActiveCalibration(m));}
+            SavePreferences();RebuildRows();return 0;
+        }
         if(id==MatchSettings) {
             size_t reference=activeMonitor;
             if(reference>=monitors.size()||!monitors[reference].supported){reference=0;while(reference<monitors.size()&&!monitors[reference].supported)++reference;}
@@ -565,7 +628,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
                 auto pending=requestedLevels.find(monitors[index].key);
                 if(pending!=requestedLevels.end()){
                     const auto& m=monitors[index];
-                    pending->second=FromRaw(ToRaw(ToHardwarePercent(pending->second,m.calibration),m.minimum,m.maximum),m.minimum,m.maximum);
+                    auto raw=requestedRawLevels.find(m.key);
+                    if(raw!=requestedRawLevels.end())pending->second=FromRaw(raw->second,m.minimum,m.maximum);
                 }
                 monitors[index].calibration={};RebuildRows();Status(tr(L"Calibration reset. Monitor brightness was not changed."));
             }
@@ -597,11 +661,22 @@ LRESULT CALLBACK WindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
     }
     case WM_CTLCOLORSTATIC:case WM_CTLCOLORBTN:return ui::ColorControl(msg,wp,lp);
     case Result:HandleEvents();return 0;
-    case Wheel:{int change=trayControl.TakeWheel(static_cast<int>(static_cast<INT_PTR>(wp)),lp!=0,preferences.wheelStep);if(change)TrayValue(change,true);return 0;}
-    case WM_MOUSEWHEEL:{if(settingsPage)return SendMessageW(settingsPane,msg,wp,lp);int change=trayControl.TakeWheel(GET_WHEEL_DELTA_WPARAM(wp),(GET_KEYSTATE_WPARAM(wp)&MK_CONTROL)!=0,preferences.wheelStep);if(change)TrayValue(change,true);return 0;}
+    case ui::WheelChanged:if(!scanning&&!calibration.Handle())AnimateTray(wp?1:-1);return 0;
+    case Wheel:{int change=trayControl.TakeWheel(static_cast<int>(static_cast<INT_PTR>(wp)),lp!=0,preferences.wheelStep);if(change)TrayValue(change,true,true);return 0;}
+    case WM_MOUSEWHEEL:{if(settingsPage)return SendMessageW(settingsPane,msg,wp,lp);int change=trayControl.TakeWheel(GET_WHEEL_DELTA_WPARAM(wp),(GET_KEYSTATE_WPARAM(wp)&MK_CONTROL)!=0,preferences.wheelStep);if(change)TrayValue(change,true,true);return 0;}
     case WM_CONTEXTMENU:SendMessageW(hwnd,Tray,0,WM_RBUTTONUP);return 0;
     case WM_DISPLAYCHANGE:popupAnchorValid=false;trayControl.InvalidatePosition();calibration.Cancel();SetTimer(hwnd,1,1500,nullptr);return 0;
-    case WM_POWERBROADCAST:if(wp==PBT_APMRESUMEAUTOMATIC){calibration.Cancel();SetTimer(hwnd,1,1500,nullptr);}return TRUE;
+    case WM_POWERBROADCAST:
+        if(wp==PBT_APMSUSPEND){RememberBrightness();displaysAsleep=true;}
+        if(wp==PBT_APMRESUMEAUTOMATIC||wp==PBT_APMRESUMESUSPEND){displaysAsleep=false;ScheduleRecovery();}
+        if(wp==PBT_POWERSETTINGCHANGE&&lp){
+            const auto& change=*reinterpret_cast<POWERBROADCAST_SETTING*>(lp);
+            if(IsEqualGUID(change.PowerSetting,DisplayPowerSetting)&&change.DataLength==sizeof(DWORD)){
+                DWORD state=0;CopyMemory(&state,change.Data,sizeof(state));
+                if(state==0){RememberBrightness();displaysAsleep=true;}
+                else if(state==1&&displaysAsleep){displaysAsleep=false;ScheduleRecovery();}
+            }
+        }return TRUE;
     case AnimationFrame:{
         frameClock.Acknowledge();if(!framesRunning)return 0;
         auto stamp=render_profile::Stamp();if(previousFrameStamp)render_profile::Record("frame_interval",stamp-previousFrameStamp);previousFrameStamp=stamp;
@@ -615,7 +690,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
     }
     case WM_TIMER:
 
-        if(wp==1){KillTimer(hwnd,1);Scan();}return 0;
+        if(wp==1){KillTimer(hwnd,1);if(displaysAsleep)return 0;if(recovering){++recoveryAttempts;Scan(true);}else Scan();}return 0;
     case WM_SETTINGCHANGE:case WM_THEMECHANGED:
         ui::RefreshTheme();ui::Frame(hwnd);InvalidateRect(hwnd,nullptr,TRUE);InvalidateRect(list,nullptr,TRUE);
         {renderedTrayPosition=-1;TrayIcon(NIM_MODIFY);HICON previous=nullptr;
@@ -625,12 +700,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
         if(calibration.Handle()){ui::Frame(calibration.Handle());RedrawWindow(calibration.Handle(),nullptr,nullptr,RDW_INVALIDATE|RDW_ALLCHILDREN);}return 0;
     case WM_DPICHANGED: {
         surface.Init(hwnd);RebuildRows();
-        for(int id:{Sync,Refresh,Exit,BrightnessPage,SettingsPage,MatchSettings,LanguageSelect,SharedSlider})SendMessageW(Control(id),WM_SETFONT,reinterpret_cast<WPARAM>(surface.body),TRUE);
+        for(int id:{Sync,Refresh,Exit,BrightnessPage,SettingsPage,MatchSettings,CalibrationToggle,LanguageSelect,SharedSlider})SendMessageW(Control(id),WM_SETFONT,reinterpret_cast<WPARAM>(surface.body),TRUE);
         for(int id=SpeedPresetBase;id<WheelPresetBase+3;++id)SendMessageW(Control(id),WM_SETFONT,reinterpret_cast<WPARAM>(surface.body),TRUE);
         RECT r=*reinterpret_cast<RECT*>(lp);SetWindowPos(hwnd,nullptr,r.left,r.top,r.right-r.left,r.bottom-r.top,SWP_NOZORDER);Layout();return 0;
     }
     case Tray:
-        if(lp==WM_MOUSEMOVE&&trayControl.Hover()&&!trayAnimating)AnimateTray(1,280);
+        if(lp==WM_MOUSEMOVE)trayControl.Hover();
         if(lp==WM_LBUTTONUP){bool toggleClosed=dismissedOverTray&&GetTickCount64()-popupDismissedAt<GetDoubleClickTime();dismissedOverTray=false;if(calibration.Handle())Show();else if(IsWindowVisible(hwnd)||toggleClosed)ShowWindow(hwnd,SW_HIDE);else Show();}
         if(lp==WM_RBUTTONUP) {
             trayControl.Hover();popupMenu=true;HMENU menu=CreatePopupMenu();AppendMenuW(menu,MF_STRING,1,tr(L"Open"));
@@ -654,7 +729,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
             if(command>=1000&&command<1000+static_cast<int>(monitors.size())){activeMonitor=static_cast<size_t>(command-1000);TrayIcon(NIM_MODIFY);}
             PostMessageW(hwnd,WM_NULL,0,0);
         }return 0;
-    case WM_DESTROY:frameClock.Close();calibration.Cancel();trayControl.Stop();TrayIcon(NIM_DELETE);PostQuitMessage(0);return 0;
+    case WM_DESTROY:if(displayPowerNotification){UnregisterPowerSettingNotification(displayPowerNotification);displayPowerNotification=nullptr;}frameClock.Close();calibration.Cancel();trayControl.Stop();TrayIcon(NIM_DELETE);PostQuitMessage(0);return 0;
     }
     return DefWindowProcW(hwnd,msg,wp,lp);
 }
@@ -667,10 +742,11 @@ void CreateControls(HINSTANCE instance){
     for(int i=0;i<3;++i)ui::Button(window,surface,tr(ResponseLabels[i]),SpeedPresetBase+i,false,true);
     for(int i=0;i<3;++i)ui::Button(window,surface,std::to_wstring(WheelPresets[i])+L"%",WheelPresetBase+i,false,true);
     ui::Button(window,surface,tr(L"Configure"),MatchSettings,false,true);
+    ui::Button(window,surface,tr(L"Apply saved calibration: on"),CalibrationToggle);
     ui::Button(window,surface,tr(L"Language"),LanguageSelect);
     ui::Control(window,surface,TRACKBAR_CLASSW,tr(L"Shared brightness"),TBS_NOTICKS|WS_TABSTOP,SharedSlider);
     SendMessageW(Control(SharedSlider),TBM_SETRANGE,TRUE,MAKELPARAM(0,100));
-    for(int id:{SpeedPresetBase,SpeedPresetBase+1,SpeedPresetBase+2,WheelPresetBase,WheelPresetBase+1,WheelPresetBase+2,MatchSettings,LanguageSelect,Refresh}){
+    for(int id:{SpeedPresetBase,SpeedPresetBase+1,SpeedPresetBase+2,WheelPresetBase,WheelPresetBase+1,WheelPresetBase+2,MatchSettings,CalibrationToggle,LanguageSelect,Refresh}){
         HWND child=Control(id);SetParent(child,settingsPane);SetWindowPos(child,HWND_BOTTOM,0,0,0,0,SWP_NOMOVE|SWP_NOSIZE|SWP_NOACTIVATE);SetWindowSubclass(child,FocusReveal,89,0);
     }
     list=CreateWindowExW(WS_EX_CONTROLPARENT,L"BrightnessTray.List",tr(L"Monitors"),WS_CHILD|WS_VISIBLE|WS_VSCROLL|WS_CLIPCHILDREN,
@@ -706,6 +782,7 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,PWSTR arguments,int) {
     if(std::wstring(arguments).find(L"--lang=ru")!=std::wstring::npos)selectedLanguage=L"ru";
     i18n::Initialize(selectedLanguage);status=tr(L"Detecting monitors…");
     syncing=GetPrivateProfileIntW(L"General",L"Sync",0,settings.c_str())!=0;
+    preferences.calibrationEnabled=GetPrivateProfileIntW(L"General",L"CalibrationEnabled",1,settings.c_str())!=0;
     preferences.transitionMs=static_cast<int>(GetPrivateProfileIntW(L"General",L"TransitionMs",transition::DefaultMs,settings.c_str()));
     preferences.wheelStep=static_cast<int>(GetPrivateProfileIntW(L"General",L"WheelStep",2,settings.c_str()));preferences.Normalize();
     preferences.hardwareStep=static_cast<int>(GetPrivateProfileIntW(L"General",L"HardwareStep",2,settings.c_str()));preferences.Normalize();
@@ -723,6 +800,7 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,PWSTR arguments,int) {
     window=CreateWindowExW((inspection?WS_EX_APPWINDOW:WS_EX_TOOLWINDOW)|WS_EX_TOPMOST|WS_EX_CONTROLPARENT,L"BrightnessTray.Native",inspection?L"BrightnessTray · Inspection":demo?L"BrightnessTray · Demo":L"BrightnessTray",
         WS_POPUP|WS_CLIPCHILDREN,CW_USEDEFAULT,CW_USEDEFAULT,352,420,nullptr,nullptr,instance,nullptr);
     if(!window){CloseHandle(singleton);return 1;}
+    displayPowerNotification=RegisterPowerSettingNotification(window,&DisplayPowerSetting,DEVICE_NOTIFY_WINDOW_HANDLE);
     surface.Init(window);ui::Frame(window);SendMessageW(window,WM_CHANGEUISTATE,MAKEWPARAM(UIS_SET,UISF_HIDEFOCUS),0);trayIcon=ui::CreateTrayIcon();appIcon=ui::CreateTrayIcon(false);
     SendMessageW(window,WM_SETICON,ICON_SMALL,reinterpret_cast<LPARAM>(appIcon));SendMessageW(window,WM_SETICON,ICON_BIG,reinterpret_cast<LPARAM>(appIcon));
     CreateControls(instance);
