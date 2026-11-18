@@ -73,7 +73,16 @@ void CheckCompactLayouts(){
             if(dpi==96)CheckUi(outer.bottom-outer.top<=surface.S(560),"calibration uses measured content instead of a 640-DIP fixed height");
             if(dpi==96||dpi==192){std::wstring name=L"compact-cal-"+std::wstring(language)+L"-"+std::to_wstring(dpi)+L"-"+std::to_wstring(theme)+L"-"+std::to_wstring(step)+L".bmp";CaptureUi(cal,name.c_str());}
             HWND rows=FindWindowExW(cal,nullptr,L"BrightnessTray.MatchRows",nullptr);
-            for(int id:{200,201}){HWND slider=GetDlgItem(rows,id);if(IsWindowVisible(slider)&&IsWindowEnabled(slider)){SetFocus(slider);CheckUi(Within(slider),"keyboard focus reveals calibration sliders in a constrained viewport");}}
+            RECT rowBounds=InParent(rows);
+            for(int rowHeight:{160,40}){
+                SetWindowPos(rows,nullptr,0,0,rowBounds.right-rowBounds.left,surface.S(rowHeight),SWP_NOMOVE|SWP_NOZORDER);
+                RECT viewport{};GetClientRect(rows,&viewport);
+                auto sliderBounds=InParent(GetDlgItem(rows,200));
+                CheckUi(sliderBounds.left>=0&&sliderBounds.right<=viewport.right,"calibration slider width follows scrollbar visibility");
+            }
+            SetWindowPos(rows,nullptr,0,0,rowBounds.right-rowBounds.left,rowBounds.bottom-rowBounds.top,SWP_NOMOVE|SWP_NOZORDER);
+            SendMessageW(cal,WM_SIZE,0,0);
+            for(int id:{200,201}){HWND slider=GetDlgItem(rows,id);if(IsWindowVisible(slider)&&IsWindowEnabled(slider)){SetFocus(slider);if(!Within(slider)){auto bounds=InParent(slider);RECT viewport{};GetClientRect(rows,&viewport);std::wcerr<<language<<L" theme="<<theme<<L" DPI="<<dpi<<L" step="<<step<<L" slider="<<id<<L" bounds="<<bounds.left<<L","<<bounds.top<<L","<<bounds.right<<L","<<bounds.bottom<<L" viewport="<<viewport.right<<L","<<viewport.bottom<<std::endl;CaptureUi(cal,L"failed-calibration-focus.bmp");}CheckUi(Within(slider),"keyboard focus reveals calibration sliders in a constrained viewport");}}
             if(step<6){SendMessageW(cal,WM_COMMAND,102,0);WaitUi([]{return IsWindowEnabled(GetDlgItem(calibration.Handle(),102));});}
         }
         calibration.Cancel();WaitUi([]{return latestWrites.empty();});

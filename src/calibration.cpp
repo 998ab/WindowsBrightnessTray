@@ -125,18 +125,24 @@ LRESULT CALLBACK CalibrationWindow::RowsProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM
 }
 LRESULT CALLBACK CalibrationWindow::RevealRow(HWND child,UINT message,WPARAM wp,LPARAM lp,UINT_PTR,DWORD_PTR data){
     auto self=reinterpret_cast<CalibrationWindow*>(data);
-    if(message==WM_SETFOCUS&&GetParent(child)==self->rows_){
-        RECT r,view;GetWindowRect(child,&r);MapWindowPoints(nullptr,self->rows_,reinterpret_cast<POINT*>(&r),2);GetClientRect(self->rows_,&view);
-        int delta=r.top<self->surface_.S(4)?r.top-self->surface_.S(4):r.bottom>view.bottom-self->surface_.S(4)?r.bottom-view.bottom+self->surface_.S(4):0;
-        if(delta){self->scroll_+=MulDiv(delta,96,static_cast<int>(self->surface_.dpi));self->LayoutRows();}
-    }
-    if(message==WM_SETFOCUS){
-        RECT r,view;GetWindowRect(child,&r);MapWindowPoints(nullptr,self->window_,reinterpret_cast<POINT*>(&r),2);GetClientRect(self->window_,&view);
-        int delta=r.top<self->surface_.S(4)?r.top-self->surface_.S(4):r.bottom>view.bottom-self->surface_.S(4)?r.bottom-view.bottom+self->surface_.S(4):0;
-        if(delta){self->pageScroll_+=MulDiv(delta,96,static_cast<int>(self->surface_.dpi));self->Layout(false);}
-    }
+    if(message==WM_SETFOCUS)self->Reveal(child);
     if(message==WM_NCDESTROY)RemoveWindowSubclass(child,RevealRow,91);
     return DefSubclassProc(child,message,wp,lp);
+}
+void CalibrationWindow::Reveal(HWND child){
+    if(revealing_||!child||!IsWindowVisible(child)||!IsWindowEnabled(child)||(GetParent(child)!=rows_&&GetParent(child)!=window_))return;
+    revealing_=true;
+    if(GetParent(child)==rows_){
+        RECT r,view;GetWindowRect(child,&r);MapWindowPoints(nullptr,rows_,reinterpret_cast<POINT*>(&r),2);GetClientRect(rows_,&view);
+        int delta=r.top<surface_.S(4)?r.top-surface_.S(4):r.bottom>view.bottom-surface_.S(4)?r.bottom-view.bottom+surface_.S(4):0;
+        if(delta){scroll_+=MulDiv(delta,96,static_cast<int>(surface_.dpi));LayoutRows();}
+    }
+    {
+        RECT r,view;GetWindowRect(child,&r);MapWindowPoints(nullptr,window_,reinterpret_cast<POINT*>(&r),2);GetClientRect(window_,&view);
+        int delta=r.top<surface_.S(4)?r.top-surface_.S(4):r.bottom>view.bottom-surface_.S(4)?r.bottom-view.bottom+surface_.S(4):0;
+        if(delta){pageScroll_+=MulDiv(delta,96,static_cast<int>(surface_.dpi));Layout(false,false);}
+    }
+    revealing_=false;
 }
 void CalibrationWindow::ReadOriginals() {
     std::vector<Command> commands;message_=tr(L"Reading original brightness from all displays…");
@@ -269,7 +275,7 @@ CalibrationWindow::LayoutInfo CalibrationWindow::MeasureLayout(int width,int hei
     layout.nextWidth=buttonWidth(Next,88);layout.limitWidth=buttonWidth(Limit,96);
     ReleaseDC(window_,dc);return layout;
 }
-void CalibrationWindow::Layout(bool fit) {
+void CalibrationWindow::Layout(bool fit,bool reveal) {
     if(!window_||!rows_||!surface_.body||layoutBusy_)return;
     layoutBusy_=true;
     RECT r;GetClientRect(window_,&r);int w=MulDiv(r.right,96,static_cast<int>(surface_.dpi)),h=MulDiv(r.bottom,96,static_cast<int>(surface_.dpi));
@@ -293,7 +299,7 @@ void CalibrationWindow::Layout(bool fit) {
     pageScroll_=std::clamp(pageScroll_,0,std::max(0,pageHeight_-h));
     SCROLLINFO page{sizeof(page),SIF_RANGE|SIF_PAGE|SIF_POS,0,pageHeight_-1,static_cast<UINT>(h),pageScroll_,0};SetScrollInfo(window_,SB_VERT,&page,TRUE);
     GetClientRect(window_,&r);int currentWidth=MulDiv(r.right,96,static_cast<int>(surface_.dpi));
-    if(currentWidth!=w){layoutBusy_=false;Layout(false);return;}
+    if(currentWidth!=w){layoutBusy_=false;Layout(false,reveal);return;}
     bool limit=step_==1||step_==2;
     ui::Place(GetDlgItem(window_,Reference),surface_,16,layout.referenceY-pageScroll_,w-32-(limit?layout.limitWidth+8:0),layout.buttonHeight);
     ui::Place(GetDlgItem(window_,Limit),surface_,w-16-layout.limitWidth,layout.referenceY-pageScroll_,layout.limitWidth,layout.buttonHeight);
@@ -302,12 +308,14 @@ void CalibrationWindow::Layout(bool fit) {
     ui::Place(GetDlgItem(window_,Back),surface_,w-24-layout.nextWidth-layout.backWidth,layout.buttonsY-pageScroll_,layout.backWidth,layout.buttonHeight);
     ui::Place(GetDlgItem(window_,Next),surface_,w-16-layout.nextWidth,layout.buttonsY-pageScroll_,layout.nextWidth,layout.buttonHeight);
     LayoutRows();InvalidateRect(window_,nullptr,FALSE);layoutBusy_=false;
+    if(reveal)Reveal(GetFocus());
 }
 void CalibrationWindow::LayoutRows() {
     if(!rows_||!surface_.body)return;RECT r;GetClientRect(rows_,&r);
     int w=MulDiv(r.right,96,static_cast<int>(surface_.dpi)),h=MulDiv(r.bottom,96,static_cast<int>(surface_.dpi)),total=static_cast<int>(monitors_.size())*68;
     scroll_=std::clamp(scroll_,0,std::max(0,total-h));
     SCROLLINFO si{sizeof(si),SIF_RANGE|SIF_PAGE|SIF_POS,0,std::max(0,total-1),static_cast<UINT>(h),scroll_,0};SetScrollInfo(rows_,SB_VERT,&si,TRUE);
+    GetClientRect(rows_,&r);w=MulDiv(r.right,96,static_cast<int>(surface_.dpi));
     for(size_t i=0;i<monitors_.size();++i)ui::Place(GetDlgItem(rows_,SliderBase+static_cast<int>(i)),surface_,12,static_cast<int>(i)*68-scroll_+32,w-24,28);
     InvalidateRect(rows_,nullptr,FALSE);
 }
@@ -426,7 +434,7 @@ LRESULT CalibrationWindow::Message(UINT msg,WPARAM wp,LPARAM lp) {
     case WM_ERASEBKGND:return 1;
     case WM_PAINT:Buffer(window_,[&](HDC dc){if(surface_.body)Paint(dc);});return 0;
     case WM_SIZE:Layout(false);return 0;
-    case WM_MOUSEWHEEL:pageScroll_-=GET_WHEEL_DELTA_WPARAM(wp)/WHEEL_DELTA*40;Layout(false);return 0;
+    case WM_MOUSEWHEEL:pageScroll_-=GET_WHEEL_DELTA_WPARAM(wp)/WHEEL_DELTA*40;Layout(false,false);return 0;
     case WM_VSCROLL:{
         SCROLLINFO si{sizeof(si),SIF_ALL};GetScrollInfo(window_,SB_VERT,&si);
         switch(LOWORD(wp)){
@@ -434,7 +442,7 @@ LRESULT CalibrationWindow::Message(UINT msg,WPARAM wp,LPARAM lp) {
         case SB_THUMBTRACK:pageScroll_=si.nTrackPos;break;
         case SB_LINEUP:pageScroll_-=24;break;case SB_LINEDOWN:pageScroll_+=24;break;
         case SB_PAGEUP:pageScroll_-=static_cast<int>(si.nPage);break;case SB_PAGEDOWN:pageScroll_+=static_cast<int>(si.nPage);break;
-        }Layout(false);return 0;
+        }Layout(false,false);return 0;
     }
     case WM_GETMINMAXINFO:{
         int height=360;

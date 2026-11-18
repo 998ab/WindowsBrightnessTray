@@ -36,8 +36,9 @@ private:
     static LRESULT CALLBACK RevealRow(HWND,UINT,WPARAM,LPARAM,UINT_PTR,DWORD_PTR);
     static LRESULT CALLBACK PatternProc(HWND,UINT,WPARAM,LPARAM);
     LRESULT Message(UINT,WPARAM,LPARAM);
-    void Layout(bool fit=true);
+    void Layout(bool fit=true,bool reveal=true);
     void LayoutRows();
+    void Reveal(HWND child);
     void Paint(HDC);
     void PaintRows(HDC);
     void Update();
@@ -59,7 +60,7 @@ private:
     std::vector<std::unique_ptr<Pattern>> patterns_;
     MonitorWorker* worker_{};
     std::function<bool(const std::vector<Calibration>&)> save_;
-    bool touched_=false,layoutBusy_=false;
+    bool touched_=false,layoutBusy_=false,revealing_=false;
     size_t reference_=0;
     int step_=0,scroll_=0,pageScroll_=0,pageHeight_=0;
     std::wstring message_;

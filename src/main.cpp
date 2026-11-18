@@ -233,6 +233,7 @@ void LayoutRows() {
     scrollOffset=std::clamp(scrollOffset,0,std::max(0,total-h));
     SCROLLINFO si{sizeof(si),SIF_RANGE|SIF_PAGE|SIF_POS,0,std::max(0,total-1),static_cast<UINT>(h),scrollOffset,0};
     SetScrollInfo(list,SB_VERT,&si,TRUE);
+      w=Width(list);
     for(size_t i=0;i<monitors.size();++i) {
         int y=static_cast<int>(i)*RowHeight()-scrollOffset;
         ui::Place(GetDlgItem(list,SliderBase+static_cast<int>(i)),surface,12,y+46,w-24,28);
