@@ -118,3 +118,5 @@ Fast response to brightness changes.	Fast response to brightness changes.
 Smaller steps for a gentler transition.	Smaller steps for a gentler transition.
 Esc cancels and restores original brightness.	Esc cancels and restores original brightness.
 Enable DDC/CI, then refresh in Settings.	Enable DDC/CI, then refresh in Settings.
+Calibration: on	Calibration: on
+Calibration: off	Calibration: off

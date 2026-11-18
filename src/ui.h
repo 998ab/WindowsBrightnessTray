@@ -5,7 +5,7 @@
 
 namespace ui {
 constexpr UINT WheelChanged=WM_APP+30;
-struct Palette { COLORREF background, card, text, muted, border, accent, onAccent, hover, track; };
+struct Palette { COLORREF background, card, text, muted, border, accent, onAccent, hover, track, selected, group; };
 extern Palette colors;
 extern HBRUSH backgroundBrush, cardBrush;
 extern int themeOverride; // 0: system, 1: light, 2: dark; optional launch override.
@@ -32,6 +32,7 @@ private:
 void Frame(HWND window);
 void Fill(HDC dc, RECT rect, COLORREF color);
 void Round(HDC dc, RECT rect, COLORREF fill, COLORREF border, int radius);
+void FocusRing(HDC dc,RECT rect,const Surface& surface,bool primary=false);
 void Text(HDC dc, const std::wstring& text, RECT rect, HFONT font, COLORREF color, UINT flags = DT_LEFT | DT_TOP | DT_WORDBREAK | DT_NOPREFIX);
 SIZE MeasureText(HDC dc,const std::wstring& text,HFONT font,int width,UINT flags=DT_WORDBREAK|DT_NOPREFIX);
 HWND Control(HWND parent, Surface& surface, const wchar_t* type, const std::wstring& text, DWORD style,

@@ -1,6 +1,6 @@
 # README media
 
-## Current gallery · v0.2.4
+## Current gallery · v0.2.5
 
 The main README uses fresh captures of BrightnessTray's native Win32 interface in demo mode. Virtual monitors are used throughout; no physical monitor brightness was changed for these recordings.
 

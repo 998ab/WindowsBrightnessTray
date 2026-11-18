@@ -4,7 +4,7 @@
 
 **External monitor brightness. Right in your Windows tray.**
 
-[**Download for Windows**](https://github.com/998ab/WindowsBrightnessTray/releases/latest) &nbsp; · &nbsp; [What's new](docs/releases/v0.2.4.md) &nbsp; · &nbsp; [Contribute](CONTRIBUTING.md)
+[**Download for Windows**](https://github.com/998ab/WindowsBrightnessTray/releases/latest) &nbsp; · &nbsp; [What's new](docs/releases/v0.2.5.md) &nbsp; · &nbsp; [Contribute](CONTRIBUTING.md)
 
 [![GitHub stars](https://img.shields.io/github/stars/998ab/WindowsBrightnessTray?style=flat-square&label=stars&color=8dccff)](https://github.com/998ab/WindowsBrightnessTray/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/998ab/WindowsBrightnessTray?style=flat-square&label=forks&color=8dccff)](https://github.com/998ab/WindowsBrightnessTray/forks)
@@ -117,7 +117,7 @@ Bug reports, translations, documentation improvements, and pull requests are wel
 
 The counters above show GitHub stars, forks, and release-asset downloads across all releases. Downloads count files, rather than unique users.
 
-<sub>Images and GIFs show the actual v0.2.4 native interface with virtual demo monitors. Presentation backgrounds and captions are added; UI controls are not redrawn. [Media notes and still images](docs/media/README.md).</sub>
+<sub>Images and GIFs show the actual v0.2.5 native interface with virtual demo monitors. Presentation backgrounds and captions are added; UI controls are not redrawn. [Media notes and still images](docs/media/README.md).</sub>
 
 ---
 

@@ -14,7 +14,9 @@ namespace ui {
 namespace {
 struct DrawingRuntime {ULONG_PTR token{};DrawingRuntime(){Gdiplus::GdiplusStartupInput input;Gdiplus::GdiplusStartup(&token,&input,nullptr);}~DrawingRuntime(){if(token)Gdiplus::GdiplusShutdown(token);}};
 void Ready(){static DrawingRuntime runtime;}
+int CALLBACK FindFont(const LOGFONTW*,const TEXTMETRICW*,DWORD,LPARAM found){*reinterpret_cast<bool*>(found)=true;return 0;}
 Gdiplus::Color Color(COLORREF c){return Gdiplus::Color(255,GetRValue(c),GetGValue(c),GetBValue(c));}
+COLORREF Blend(COLORREF a,COLORREF b,int weight){return RGB((GetRValue(a)*(100-weight)+GetRValue(b)*weight)/100,(GetGValue(a)*(100-weight)+GetGValue(b)*weight)/100,(GetBValue(a)*(100-weight)+GetBValue(b)*weight)/100);}
 void Smooth(Gdiplus::Graphics& g){g.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);g.SetPixelOffsetMode(Gdiplus::PixelOffsetModeHighQuality);}
 void RoundedPath(Gdiplus::GraphicsPath& p,float x,float y,float w,float h,float diameter){float d=std::min(diameter,std::min(w,h));if(d<=0){p.AddRectangle(Gdiplus::RectF(x,y,w,h));return;}p.AddArc(x,y,d,d,180,90);p.AddArc(x+w-d,y,d,d,270,90);p.AddArc(x+w-d,y+h-d,d,d,0,90);p.AddArc(x,y+h-d,d,d,90,90);p.CloseFigure();}
 }
@@ -30,10 +32,10 @@ void RefreshTheme() {
     RegGetValueW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
         L"AppsUseLightTheme", RRF_RT_REG_DWORD, nullptr, &light, &size);
     if(themeOverride) light=themeOverride==1;
-    colors = light ? Palette{RGB(243,243,243), RGB(255,255,255), RGB(26,26,26), RGB(100,100,100),
-        RGB(225,225,225), RGB(0,95,184), RGB(255,255,255), RGB(245,245,245), RGB(135,135,135)}
-        : Palette{RGB(32,38,49), RGB(39,47,60), RGB(237,243,252), RGB(168,180,197),
-        RGB(59,67,80), RGB(141,204,255), RGB(22,37,50), RGB(49,64,82), RGB(77,87,104)};
+    colors = light ? Palette{RGB(247,247,247),RGB(255,255,255),RGB(32,32,32),RGB(98,98,98),
+        RGB(222,222,222),RGB(0,103,192),RGB(255,255,255),RGB(240,240,240),RGB(140,140,140),RGB(255,255,255),RGB(235,235,235)}
+        : Palette{RGB(32,32,32),RGB(41,41,41),RGB(243,243,243),RGB(180,180,180),
+        RGB(58,58,58),RGB(128,191,255),RGB(24,24,24),RGB(51,51,51),RGB(110,110,110),RGB(59,59,59),RGB(41,41,41)};
     if (backgroundBrush) DeleteObject(backgroundBrush);
     if (cardBrush) DeleteObject(cardBrush);
     backgroundBrush = CreateSolidBrush(colors.background); cardBrush = CreateSolidBrush(colors.card);
@@ -44,7 +46,10 @@ void Surface::Clear() {
 }
 void Surface::Init(HWND window,UINT dpiOverride) {
     Clear(); dpi = dpiOverride?dpiOverride:GetDpiForWindow(window);
-    auto make = [&](int height, int weight, const wchar_t* face = L"Segoe UI") {
+    LOGFONTW requested{};requested.lfCharSet=DEFAULT_CHARSET;wcscpy_s(requested.lfFaceName,L"Segoe UI Variable Text");
+    bool variable=false;HDC dc=GetDC(window);EnumFontFamiliesExW(dc,&requested,FindFont,reinterpret_cast<LPARAM>(&variable),0);ReleaseDC(window,dc);
+    const wchar_t* face=variable?L"Segoe UI Variable Text":L"Segoe UI";
+    auto make = [&](int height, int weight) {
         return CreateFontW(-S(height), 0, 0, 0, weight, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
             OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, face);
     };
@@ -74,6 +79,12 @@ void Round(HDC dc, RECT rect, COLORREF fill, COLORREF border, int radius) {
     Gdiplus::SolidBrush brush(Color(fill));g.FillPath(&brush,&p);
     if(fill!=border){Gdiplus::Pen pen(Color(border),1.0f);g.DrawPath(&pen,&p);}
 
+}
+void FocusRing(HDC dc,RECT rect,const Surface& surface,bool primary){
+    if(rect.right<=rect.left||rect.bottom<=rect.top)return;
+    Ready();Gdiplus::Graphics g(dc);Smooth(g);Gdiplus::GraphicsPath path;
+    RoundedPath(path,rect.left+1.0f,rect.top+1.0f,static_cast<float>(rect.right-rect.left-2),static_cast<float>(rect.bottom-rect.top-2),static_cast<float>(surface.S(10)));
+    Gdiplus::Pen pen(Color(primary?colors.onAccent:colors.accent),static_cast<float>(std::max(1,surface.S(primary?2:1))));g.DrawPath(&pen,&path);
 }
 void Text(HDC dc, const std::wstring& text, RECT rect, HFONT font, COLORREF color, UINT flags) {
     auto old = SelectObject(dc, font); SetBkMode(dc, TRANSPARENT); SetTextColor(dc, color);
@@ -111,9 +122,9 @@ void PaintTrackbar(HWND hwnd,HDC dc,const Surface& surface) {
     Ready();Gdiplus::Graphics g(dc);Smooth(g);
     auto track=[&](float end,COLORREF color){if(end<=left)return;Gdiplus::GraphicsPath path;RoundedPath(path,left,y-surface.S(2),end-left,static_cast<float>(surface.S(4)),static_cast<float>(surface.S(4)));Gdiplus::SolidBrush fill(Color(color));g.FillPath(&fill,&path);};
     track(right,colors.track);track(std::max(x,actual),mix(accent,colors.track));track(actual,accent);
-    float radius=static_cast<float>(surface.S(10));Gdiplus::SolidBrush outer(Color(colors.card));g.FillEllipse(&outer,x-radius,y-radius,2*radius,2*radius);
+    float radius=static_cast<float>(surface.S(8));Gdiplus::SolidBrush outer(Color(colors.card));g.FillEllipse(&outer,x-radius,y-radius,2*radius,2*radius);
     Gdiplus::Pen border(Color(colors.border),1);g.DrawEllipse(&border,x-radius+0.5f,y-radius+0.5f,2*radius-1,2*radius-1);
-    float inner=radius-surface.S(4);Gdiplus::SolidBrush dot(Color(accent));g.FillEllipse(&dot,x-inner,y-inner,2*inner,2*inner);
+    float inner=radius-surface.S(3);Gdiplus::SolidBrush dot(Color(accent));g.FillEllipse(&dot,x-inner,y-inner,2*inner,2*inner);
     if(GetFocus()==hwnd&&!(SendMessageW(hwnd,WM_QUERYUISTATE,0,0)&UISF_HIDEFOCUS)){Gdiplus::Pen focus(Color(accent),1);float r=radius+surface.S(2);g.DrawEllipse(&focus,x-r,y-r,2*r,2*r);}
 
 }
@@ -169,15 +180,32 @@ bool DrawButton(const DRAWITEMSTRUCT& item, const Surface& surface) {
     if (item.CtlType != ODT_BUTTON) return false;
     const bool accent = GetPropW(item.hwndItem, L"Accent") != nullptr;
     const bool disabled = (item.itemState & ODS_DISABLED) != 0;
+    const bool selected=GetPropW(item.hwndItem,L"Checked")!=nullptr;
+    const bool segment=GetPropW(item.hwndItem,L"Segment")!=nullptr;
+    const bool toggle=GetPropW(item.hwndItem,L"Toggle")!=nullptr;
+    const bool quiet=GetPropW(item.hwndItem,L"Quiet")!=nullptr;
     const bool hover = GetPropW(item.hwndItem, L"Hot") || (item.itemState & ODS_SELECTED);
-    Fill(item.hDC, item.rcItem, GetPropW(item.hwndItem, L"Card") ? colors.card : colors.background);
+    COLORREF background=segment?colors.group:GetPropW(item.hwndItem,L"Card")?colors.card:colors.background;
+    Fill(item.hDC,item.rcItem,background);
     RECT r = item.rcItem; InflateRect(&r, -1, -1);
-    Round(item.hDC, r, disabled ? colors.background : accent ? colors.accent : hover ? colors.hover : colors.card,
-        accent && !disabled ? colors.accent : colors.border, surface.S(8));
+    COLORREF fill=disabled?background:accent?colors.accent:segment&&selected?colors.selected:hover?colors.hover:(segment||toggle||quiet)?background:colors.card;
+    if(!disabled&&accent&&hover)fill=Blend(fill,colors.text,(item.itemState&ODS_SELECTED)?16:8);
+    Round(item.hDC,r,fill,accent&&!disabled?colors.accent:(segment||toggle||quiet)?fill:colors.border,surface.S(12));
     wchar_t label[256]{}; GetWindowTextW(item.hwndItem, label, 256);
-    Text(item.hDC, label, r, surface.body, disabled ? colors.muted : accent ? colors.onAccent : colors.text,
-        DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOPREFIX);
-    if (item.itemState & ODS_FOCUS) { InflateRect(&r, -surface.S(4), -surface.S(4)); DrawFocusRect(item.hDC, &r); }
+    RECT text=r;
+    if(toggle){
+        text.left+=surface.S(2);text.right-=surface.S(52);
+        RECT track{r.right-surface.S(38),(r.top+r.bottom-surface.S(20))/2,r.right-surface.S(2),(r.top+r.bottom+surface.S(20))/2};
+        COLORREF switchColor=disabled?colors.track:selected?colors.accent:colors.track;
+        Round(item.hDC,track,switchColor,switchColor,surface.S(20));
+        int left=selected?track.right-surface.S(17):track.left+surface.S(3);
+        RECT thumb{left,track.top+surface.S(3),left+surface.S(14),track.bottom-surface.S(3)};
+        Round(item.hDC,thumb,selected&&!disabled?colors.onAccent:colors.card,selected&&!disabled?colors.onAccent:colors.card,surface.S(14));
+    }
+    Text(item.hDC, label, text, surface.body, disabled ? colors.muted : accent ? colors.onAccent : colors.text,
+        (toggle?DT_LEFT:DT_CENTER) | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOPREFIX);
+    if(segment&&selected&&!disabled){RECT indicator{(r.left+r.right)/2-surface.S(8),r.bottom-surface.S(2),(r.left+r.right)/2+surface.S(8),r.bottom};Round(item.hDC,indicator,colors.accent,colors.accent,surface.S(2));}
+    if((item.itemState&ODS_FOCUS)&&!(SendMessageW(item.hwndItem,WM_QUERYUISTATE,0,0)&UISF_HIDEFOCUS)){if(accent)InflateRect(&r,-surface.S(3),-surface.S(3));FocusRing(item.hDC,r,surface,accent);}
     return true;
 }
 LRESULT SliderDraw(NMHDR* header, const Surface& surface) {

@@ -54,7 +54,7 @@ void CheckCompactLayouts(){
         SetPage(true);MONITORINFO work{sizeof(work)};GetMonitorInfoW(MonitorFromWindow(window,MONITOR_DEFAULTTONEAREST),&work);
         int available=MulDiv(work.rcWork.bottom-work.rcWork.top,96,static_cast<int>(dpi))-24;
         CheckUi(Width(window)==320&&Height(window)==std::min(348,available),"compact settings fit their content or the available work area at each DPI");
-        for(int id:{SpeedPresetBase,SpeedPresetBase+1,SpeedPresetBase+2,WheelPresetBase,WheelPresetBase+1,WheelPresetBase+2,MatchSettings,CalibrationToggle,Refresh}){SetFocus(Control(id));CheckButtonLabel(Control(id));}
+        for(int id:{SpeedPresetBase,SpeedPresetBase+1,SpeedPresetBase+2,WheelPresetBase,WheelPresetBase+1,WheelPresetBase+2,MatchSettings,CalibrationToggle,Refresh}){SetFocus(Control(id));CheckButtonLabel(Control(id),id==CalibrationToggle?68:16);}
         SetFocus(Control(LanguageSelect));CheckButtonLabel(Control(LanguageSelect),32);
         settingsOffset=0;LayoutSettings();
         for(const wchar_t* hint:{tr(L"No intermediate steps."),tr(L"Fast response to brightness changes."),tr(L"Smaller steps for a gentler transition.")}){
@@ -107,6 +107,25 @@ void CheckCompactLayouts(){
     CheckUi(wizard.bottom<=screen.rcMonitor.bottom-strip-surface.S(12),"high-DPI wizard stays above the comparison strip on stacked displays");
     for(int id:{102,103}){SetFocus(GetDlgItem(calibration.Handle(),id));CheckButtonLabel(GetDlgItem(calibration.Handle(),id));}
     CaptureUi(calibration.Handle(),L"compact-stacked-200.bmp");calibration.Cancel();
+}
+void CheckPreferenceAppearance(){
+    SetPage(true);preferences.responseMode=1;UpdatePreferencesControls();
+    HWND button=Control(SpeedPresetBase+1);RECT bounds{};GetClientRect(button,&bounds);
+    HDC dc=GetDC(button),memory=CreateCompatibleDC(dc);auto bitmap=CreateCompatibleBitmap(dc,bounds.right,bounds.bottom);auto old=SelectObject(memory,bitmap);
+    DRAWITEMSTRUCT draw{};draw.CtlType=ODT_BUTTON;draw.CtlID=SpeedPresetBase+1;draw.hwndItem=button;draw.hDC=memory;draw.rcItem=bounds;
+    SendMessageW(window,WM_DRAWITEM,draw.CtlID,reinterpret_cast<LPARAM>(&draw));
+    int accentPixels=0;for(int y=0;y<bounds.bottom;++y)for(int x=0;x<bounds.right;++x)if(GetPixel(memory,x,y)==ui::colors.accent)++accentPixels;
+    SelectObject(memory,old);DeleteObject(bitmap);DeleteDC(memory);ReleaseDC(button,dc);
+    CheckUi(accentPixels<bounds.right*bounds.bottom/8,"selected preferences use a restrained indicator instead of a solid primary action fill");
+    ui::Button(window,surface,L"Next",9001,true);HWND primary=GetDlgItem(window,9001);ui::Place(primary,surface,0,0,88,28);
+    GetClientRect(primary,&bounds);dc=GetDC(primary);memory=CreateCompatibleDC(dc);bitmap=CreateCompatibleBitmap(dc,bounds.right,bounds.bottom);old=SelectObject(memory,bitmap);
+    draw.CtlID=9001;draw.hwndItem=primary;draw.hDC=memory;draw.rcItem=bounds;draw.itemState=0;
+    SendMessageW(primary,WM_CHANGEUISTATE,MAKEWPARAM(UIS_CLEAR,UISF_HIDEFOCUS),0);
+    auto contrastingPixels=[&]{int count=0;for(int y=0;y<bounds.bottom;++y)for(int x=0;x<bounds.right;++x)if(GetPixel(memory,x,y)==ui::colors.onAccent)++count;return count;};
+    ui::DrawButton(draw,surface);int before=contrastingPixels();draw.itemState=ODS_FOCUS;ui::DrawButton(draw,surface);int focused=contrastingPixels();
+    SelectObject(memory,old);DeleteObject(bitmap);DeleteDC(memory);ReleaseDC(primary,dc);DestroyWindow(primary);
+    CheckUi(focused>before+5,"primary actions have a contrasting visible keyboard focus outline");
+    SetPage(false);
 }
 int main(){int result=0;try{
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);INITCOMMONCONTROLSEX common{sizeof(common),ICC_BAR_CLASSES};InitCommonControlsEx(&common);ui::themeOverride=1;ui::RefreshTheme();i18n::Initialize(L"ru");
@@ -234,7 +253,7 @@ int main(){int result=0;try{
     SendMessageW(window,WM_POWERBROADCAST,PBT_APMRESUMEAUTOMATIC,0);SendMessageW(window,WM_TIMER,1,0);
     WaitUi([]{return !scanning&&!recovering&&latestWrites.empty();});
     CheckUi(monitors[0].current==60,"resume completes the target interrupted by wizard initialization");
-    CheckCompactLayouts();
+    CheckPreferenceAppearance();CheckCompactLayouts();
 }catch(const std::exception& error){std::cerr<<"FAIL: "<<error.what()<<std::endl;result=1;}
 calibration.Cancel();
 worker.Stop();
