@@ -4,7 +4,15 @@
 
 **External monitor brightness. Right in your Windows tray.**
 
-[**Download for Windows**](https://github.com/998ab/WindowsBrightnessTray/releases/latest) &nbsp; · &nbsp; [What's new](docs/releases/v0.2.2.md) &nbsp; · &nbsp; [Build from source](docs/development.md)
+[**Download for Windows**](https://github.com/998ab/WindowsBrightnessTray/releases/latest) &nbsp; · &nbsp; [What's new](docs/releases/v0.2.3.md) &nbsp; · &nbsp; [Contribute](CONTRIBUTING.md)
+
+[![GitHub stars](https://img.shields.io/github/stars/998ab/WindowsBrightnessTray?style=flat-square&label=stars&color=8dccff)](https://github.com/998ab/WindowsBrightnessTray/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/998ab/WindowsBrightnessTray?style=flat-square&label=forks&color=8dccff)](https://github.com/998ab/WindowsBrightnessTray/forks)
+[![GitHub release asset downloads](https://img.shields.io/github/downloads/998ab/WindowsBrightnessTray/total?style=flat-square&label=downloads&color=8dccff)](https://github.com/998ab/WindowsBrightnessTray/releases)
+
+[![Latest release](https://img.shields.io/github/v/release/998ab/WindowsBrightnessTray?style=flat-square&label=release&color=8dccff)](https://github.com/998ab/WindowsBrightnessTray/releases/latest)
+[![Build status](https://img.shields.io/github/actions/workflow/status/998ab/WindowsBrightnessTray/build.yml?branch=main&style=flat-square&label=build)](https://github.com/998ab/WindowsBrightnessTray/actions/workflows/build.yml)
+[![MIT License](https://img.shields.io/badge/license-MIT-8dccff?style=flat-square)](LICENSE)
 
 Windows 10 / 11 · x64 · DDC/CI · English & Russian
 
@@ -12,7 +20,7 @@ Windows 10 / 11 · x64 · DDC/CI · English & Russian
 
 ![BrightnessTray: native brightness controls for two linked monitors.](docs/media/hero.png)
 
-BrightnessTray puts your external displays within a scroll of your mouse. Adjust one monitor or link them together, match their brightness, and get back to what you were doing.
+BrightnessTray is a free, open-source app that puts your external displays within a scroll of your mouse. Adjust one monitor or link them together, match their brightness, and get back to what you were doing.
 
 | Scroll to adjust | Link your displays | Keep it local |
 | --- | --- | --- |
@@ -103,8 +111,14 @@ The build also runs the test suite without changing physical monitor brightness.
 
 </details>
 
+## Made to be shared.
+
+Bug reports, translations, documentation improvements, and pull requests are welcome. [Read the contributing guide](CONTRIBUTING.md), [report a bug](https://github.com/998ab/WindowsBrightnessTray/issues/new), or [browse the source](src).
+
+The counters above show GitHub stars, forks, and release-asset downloads across all releases. Downloads count files, rather than unique users.
+
 <sub>Images and GIFs show the actual v0.2.2 native interface with virtual demo monitors. Presentation backgrounds and captions are added; UI controls are not redrawn. [Media notes and still images](docs/media/README.md).</sub>
 
 ---
 
-Free to use and redistribute free of charge. Selling copies or modified versions requires separate permission. [License](LICENSE).
+**MIT licensed.** Use, modify, redistribute, and sell the software, including in commercial projects, under the terms of the [MIT License](LICENSE).
